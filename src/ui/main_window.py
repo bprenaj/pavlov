@@ -190,8 +190,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Mapavlov")
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Window)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
-        self.setMinimumSize(380, 560)
-        self.resize(420, 700)
+        self.setMinimumWidth(380)
+        self.resize(420, 100)
         self.setWindowIcon(self._app_icon())
 
     @staticmethod
@@ -251,9 +251,14 @@ class MainWindow(QMainWindow):
 
         content = QWidget()
         root = QVBoxLayout(content)
-        root.setContentsMargins(28, 8, 28, 18)
+        root.setContentsMargins(28, 0, 28, 18)
         root.setSpacing(0)
-        outer.addWidget(content, stretch=1)
+        outer.addWidget(content)
+
+        # -- Beam status (top) --------------------------------------------
+        self._status_widget = BeamStatusWidget()
+        root.addWidget(self._status_widget)
+        root.addWidget(_spacer(16))
 
         # -- Region -------------------------------------------------------
         root.addWidget(_section_header("Region"))
@@ -450,8 +455,8 @@ class MainWindow(QMainWindow):
         self._stats_panel.setVisible(False)
         self._stats_panel.setStyleSheet("background: transparent;")
         sp = QVBoxLayout(self._stats_panel)
-        sp.setContentsMargins(0, 14, 0, 8)
-        sp.setSpacing(8)
+        sp.setContentsMargins(0, 6, 0, 4)
+        sp.setSpacing(4)
 
         self._stat_labels: dict[str, QLabel] = {}
         for key, label in [
@@ -494,14 +499,9 @@ class MainWindow(QMainWindow):
         self._debug_label.setVisible(self._debug)
         root.addWidget(self._debug_label)
 
-        root.addStretch()
-
-        # -- Beam status ---------------------------------------------------
-        self._status_widget = BeamStatusWidget()
-        root.addWidget(self._status_widget)
-
         self._update_slider_labels()
         self._update_region_ui()
+        self.adjustSize()
 
     def _build_slider_row(self, parent: QVBoxLayout, label: str, tooltip: str,
                           min_v: int, max_v: int, value: int) -> None:
@@ -757,18 +757,31 @@ class MainWindow(QMainWindow):
     # Stats
     # ==================================================================
 
-    _STATS_EXPAND_PX = 220
-
     def _toggle_stats(self) -> None:
-        vis = self._stats_panel.isHidden()
-        self._stats_panel.setVisible(vis)
+        opening = self._stats_panel.isHidden()
+        h = self.height()
+        # Lock the window so Qt can't auto-resize when visibility changes
+        self.setFixedHeight(h)
+
+        if opening:
+            self._stats_panel.setVisible(True)
+            delta = self._stats_panel.sizeHint().height()
+            target = h + delta
+        else:
+            delta = self._stats_panel.height()
+            self._stats_panel.setVisible(False)
+            target = h - delta
+
+        # Apply the new height, then unlock
+        self.setFixedHeight(target)
+        self.setMinimumHeight(0)
+        self.setMaximumHeight(16777215)
+
         self._stats_toggle.setText(
             "Statistics  (powered by the Beam Eye Tracker)  \u25BE"
-            if vis else
+            if opening else
             "Statistics  (powered by the Beam Eye Tracker)  \u25B8"
         )
-        delta = self._STATS_EXPAND_PX if vis else -self._STATS_EXPAND_PX
-        self.resize(self.width(), self.height() + delta)
 
     def _refresh_stats(self) -> None:
         if not self._training_active:
