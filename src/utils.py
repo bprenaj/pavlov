@@ -7,7 +7,15 @@ import os
 import struct
 import wave
 
-ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+import sys
+
+def _base_dir() -> str:
+    """Return the base directory: _MEIPASS when frozen, src/ otherwise."""
+    if getattr(sys, "frozen", False):
+        return sys._MEIPASS
+    return os.path.dirname(os.path.abspath(__file__))
+
+ASSETS_DIR = os.path.join(_base_dir(), "assets")
 
 
 def ensure_assets_dir() -> str:

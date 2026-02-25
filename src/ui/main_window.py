@@ -232,9 +232,9 @@ class _TitleBar(QWidget):
             f"font-size: 28px; font-weight: 700; color: {TEXT_PRIMARY};"
         )
         layout.addWidget(self._title_label)
-        layout.addSpacing(24)
+        layout.addStretch()
 
-        # Beam status indicator (left-of-center, away from window controls)
+        # Beam status indicator (centered between logo and window controls)
         self._status_dot = QLabel("\u25CF")
         self._status_dot.setFixedWidth(22)
         self._status_dot.setStyleSheet(f"font-size: 18px; color: {TEXT_TERTIARY};")
@@ -378,10 +378,11 @@ class MainWindow(QMainWindow):
 
     @staticmethod
     def _favicon_path() -> str:
-        return os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-            "images", "Mapavlov Favicon.svg",
-        )
+        if getattr(sys, "frozen", False):
+            base = sys._MEIPASS
+        else:
+            base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        return os.path.join(base, "images", "Mapavlov Favicon.svg")
 
     @classmethod
     def _app_icon(cls) -> QIcon:
