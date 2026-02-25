@@ -33,6 +33,11 @@ TEXT_TERTIARY = "#55555E"
 SUCCESS_GREEN = "#34C759"
 WARNING_AMBER = "#FFB300"
 
+# Blood-panel metric range colors (muted, low-attention)
+RANGE_GOOD = "#7ECFA0"
+RANGE_WARN = "#D4C46A"
+RANGE_BAD = "#D48A7E"
+
 BORDER_RADIUS = "10px"
 CARD_RADIUS = "12px"
 FONT_FAMILY = '"Lato", "SF Pro Display", "Segoe UI", sans-serif'

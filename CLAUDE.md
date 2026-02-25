@@ -247,6 +247,49 @@ Don't `pip install` fonts. Bundle TTF files in `src/assets/` and load via `QFont
 
 PowerShell does not support bash heredoc (`<<'EOF'`). Use PowerShell here-strings (`@" ... "@`) for multi-line git commit messages.
 
+### 7. QComboBox Dropdown Transparency on Frameless Windows
+
+On frameless windows (`FramelessWindowHint`), the `QComboBox` popup inherits the window's rendering and can appear transparent. Stylesheets on `QComboBox QAbstractItemView` alone do not fix it.
+
+**Fix:** Subclass `QComboBox` and override `showPopup()` to force the popup window opaque:
+```python
+class _OpaqueComboBox(QComboBox):
+    def showPopup(self):
+        super().showPopup()
+        popup = self.view().window()
+        popup.setAutoFillBackground(True)
+        popup.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
+        popup.setStyleSheet("background-color: #1E2028; ...")
+```
+
+### 8. Global Hotkey on Windows (nativeEvent, not polling)
+
+`RegisterHotKey(None, ...)` registers globally but Qt's event loop swallows the `WM_HOTKEY` message before a polling timer can catch it.
+
+**Fix:** Register with the window handle (`int(self.winId())`) and override `nativeEvent` to intercept `WM_HOTKEY` (0x0312) directly. Always `UnregisterHotKey` on quit.
+
+### 9. Tray/Taskbar Icon with Status Overlay
+
+To overlay a colored status dot on the tray icon, copy the base `QPixmap` first (`src.copy()`) before painting. SVG-sourced pixmaps may be read-only. Use `QPainter` to draw a filled ellipse with a dark outline for contrast.
+
+### 10. Progressive Disclosure in Debug Mode
+
+When simulating first-time UX in debug mode, set a `_force_first_time` flag BEFORE `_build_ui()` and `_load_settings_into_ui()` are called. These methods invoke `_update_region_ui()` during init, which reads the flag. Clear it when the user completes the action (selects a region).
+
+### 11. Blood-Panel Metric Coloring
+
+Metrics use muted colors (not harsh traffic lights) to indicate ranges: soft green for good, soft yellow for needs-improvement, soft coral for bad. Define ranges per metric with a `higher_is_better` flag. Band metrics like "map attention" need both a too-low and too-high threshold. Apply colors in the stats refresh loop by updating `setStyleSheet` on value labels.
+
+### 12. Pavlov Metaphor (Get It Right)
+
+The app icon is Pavlov ringing a bell. The metaphor:
+- **Pavlov** (scientist) = **MapSense** (the app doing the conditioning)
+- **The dog** = **the gamer** (being trained)
+- **The bell** = **the alert** (audio ding, visual flash)
+- **The food** = **the minimap** (what the dog learns to check)
+
+Never call Pavlov a dog. MapSense doesn't bark (dogs bark). MapSense rings bells.
+
 ## IRL Webhook API
 
 The IRL webhook enables physical alert devices. When enabled, MapSense:

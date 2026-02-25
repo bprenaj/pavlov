@@ -53,6 +53,9 @@ from ui.setup_overlay import MinimapSetupOverlay
 from ui.styles import (
     CARD_BORDER,
     PURPLE,
+    RANGE_BAD,
+    RANGE_GOOD,
+    RANGE_WARN,
     SUCCESS_GREEN,
     SURFACE,
     WARNING_AMBER,
@@ -79,6 +82,44 @@ for _d in "0123456789":
     _KEY_TO_VK[_d] = ord(_d)
 for _i in range(1, 25):
     _KEY_TO_VK[f"f{_i}"] = 0x6F + _i
+
+# Blood-panel metric ranges: (good_min, good_max, warn_min, warn_max)
+# Values outside warn range are "bad". Direction matters per metric.
+# "higher_is_better" = True means high values are good.
+_METRIC_RANGES: dict[str, tuple[float, float, float, float, bool]] = {
+    #                      good_lo  good_hi  warn_lo  warn_hi  higher_is_better
+    "rate":           (6.0,   999.0,  3.0,    6.0,    True),
+    "avg_gap":        (0.0,   8.0,    8.0,    15.0,   False),
+    "map_time":       (8.0,   15.0,   4.0,    20.0,   None),    # band: too low and too high are bad
+    "proc_speed":     (0.0,   0.5,    0.5,    1.0,    False),
+    "longest_gap":    (0.0,   10.0,   10.0,   20.0,   False),
+    "alerts":         (0.0,   3.0,    3.0,    8.0,    False),
+    "alert_free":     (30.0,  999.0,  15.0,   30.0,   True),
+}
+
+
+def _metric_color(key: str, value: float) -> str:
+    """Return a muted color for the metric value based on blood-panel ranges."""
+    spec = _METRIC_RANGES.get(key)
+    if spec is None:
+        return TEXT_PRIMARY
+    good_lo, good_hi, warn_lo, warn_hi, higher_better = spec
+
+    if higher_better is None:
+        # Band metric (map_time): good if inside good range, warn if in warn range, bad outside
+        if good_lo <= value <= good_hi:
+            return RANGE_GOOD
+        if warn_lo <= value <= warn_hi:
+            return RANGE_WARN
+        return RANGE_BAD
+
+    if good_lo <= value <= good_hi:
+        return RANGE_GOOD
+    if warn_lo <= value <= warn_hi:
+        return RANGE_WARN
+    if higher_better:
+        return RANGE_BAD if value < warn_lo else RANGE_WARN
+    return RANGE_BAD if value > warn_hi else RANGE_WARN
 
 
 def _parse_hotkey(s: str) -> tuple[int, int]:
@@ -191,9 +232,9 @@ class _TitleBar(QWidget):
             f"font-size: 28px; font-weight: 700; color: {TEXT_PRIMARY};"
         )
         layout.addWidget(self._title_label)
-        layout.addStretch()
+        layout.addSpacing(24)
 
-        # Beam status indicator
+        # Beam status indicator (left-of-center, away from window controls)
         self._status_dot = QLabel("\u25CF")
         self._status_dot.setFixedWidth(22)
         self._status_dot.setStyleSheet(f"font-size: 18px; color: {TEXT_TERTIARY};")
@@ -214,7 +255,7 @@ class _TitleBar(QWidget):
         self._status_text.setStyleSheet(f"font-size: 11px; color: {TEXT_TERTIARY};")
         layout.addWidget(self._status_text)
 
-        layout.addSpacing(16)
+        layout.addStretch()
 
         btn_css = (
             "QPushButton {{ background: transparent; border: none; "
@@ -444,7 +485,6 @@ class MainWindow(QMainWindow):
         right.setContentsMargins(20, 0, 0, 0)
         right.setSpacing(0)
         self._build_right_column(right)
-        right.addStretch()
         two_col.addWidget(right_w, stretch=1)
 
         content_lay.addWidget(self._two_col_panel)
@@ -794,6 +834,7 @@ class MainWindow(QMainWindow):
         mas_row.addWidget(mas_name)
         mas_row.addStretch()
         self._mas_label = QLabel("-")
+        self._mas_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         self._mas_label.setStyleSheet(
             f"QLabel {{ font-size: 22px; font-weight: 700; color: {TEXT_PRIMARY}; }}"
             f"QToolTip {{ font-size: 12px; font-weight: 400; }}"
@@ -892,7 +933,7 @@ class MainWindow(QMainWindow):
         self._history_btn.clicked.connect(self._show_history)
         right.addWidget(self._history_btn)
 
-        right.addWidget(_spacer(12))
+        right.addStretch()
 
         _social_css = (
             f"QPushButton {{ border: none; background: transparent; color: {PURPLE}; "
@@ -1265,6 +1306,18 @@ class MainWindow(QMainWindow):
         pct = (self._total_glance_time / elapsed * 100) if elapsed > 0 else 0
         self._stat_labels["map_time"].setText(f"{pct:.1f}%")
 
+        # Apply blood-panel coloring to each metric value
+        _raw = {
+            "rate": rate, "avg_gap": avg_gap, "map_time": pct,
+            "proc_speed": avg_dur_s, "longest_gap": self._longest_gap,
+            "alerts": float(self._alert_count), "alert_free": self._best_alert_free,
+        }
+        for k, v in _raw.items():
+            c = _metric_color(k, v)
+            self._stat_labels[k].setStyleSheet(
+                f"font-size: 13px; color: {c}; font-weight: 600;"
+            )
+
         # Live MAS
         gap_std = 0.0
         if len(self._gap_times) >= 2:
@@ -1272,6 +1325,18 @@ class MainWindow(QMainWindow):
             gap_std = math.sqrt(sum((g - mean_g) ** 2 for g in self._gap_times) / len(self._gap_times))
         mas = compute_mas(rate, avg_gap, avg_dur_ms, gap_std)
         self._mas_label.setText(f"{mas:.0f}")
+
+        # Color the MAS score
+        if mas >= 70:
+            mas_c = RANGE_GOOD
+        elif mas >= 40:
+            mas_c = RANGE_WARN
+        else:
+            mas_c = RANGE_BAD
+        self._mas_label.setStyleSheet(
+            f"QLabel {{ font-size: 22px; font-weight: 700; color: {mas_c}; }}"
+            f"QToolTip {{ font-size: 12px; font-weight: 400; }}"
+        )
 
     @staticmethod
     def _fmt_duration(s: float) -> str:
