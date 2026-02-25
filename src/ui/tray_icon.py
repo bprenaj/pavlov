@@ -24,8 +24,11 @@ class TrayIcon(QSystemTrayIcon):
 
         menu = QMenu()
         menu.setStyleSheet(
-            "QMenu { background: #23262E; color: #F0F0F0; border: 1px solid #333640; }"
+            "QMenu { background: #23262E; color: #F0F0F0; border: 1px solid #333640; "
+            "padding: 6px 0; min-width: 180px; }"
+            "QMenu::item { padding: 8px 24px 8px 16px; }"
             "QMenu::item:selected { background: #7B61FF; }"
+            "QMenu::separator { height: 1px; background: #333640; margin: 4px 12px; }"
         )
 
         self._show_action = QAction("Show MapSense", self)

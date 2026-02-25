@@ -128,6 +128,7 @@ class Settings:
     minimap_rect: MinimapRect = field(default_factory=MinimapRect)
     region_name: str = ""
     first_run: bool = True
+    hotkey: str = ""
 
     @property
     def has_region(self) -> bool:
@@ -163,6 +164,7 @@ class Settings:
                 minimap_rect=MinimapRect(**data.get("minimap_rect", {})),
                 region_name=data.get("region_name", ""),
                 first_run=data.get("first_run", True),
+                hotkey=data.get("hotkey", ""),
             )
         except (json.JSONDecodeError, TypeError, KeyError):
             logger.exception("Corrupt settings file, resetting to defaults")

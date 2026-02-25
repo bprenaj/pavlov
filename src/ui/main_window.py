@@ -2,16 +2,29 @@
 
 from __future__ import annotations
 
+import ctypes
+import ctypes.wintypes
 import logging
 import math
 import os
 import shutil
+import sys
 import time
 import urllib.parse
 import webbrowser
 
 from PySide6.QtCore import QEvent, QObject, QPoint, QRect, QSize, Qt, QTimer
-from PySide6.QtGui import QCloseEvent, QColor, QIcon, QMouseEvent, QPixmap
+from PySide6.QtGui import (
+    QBrush,
+    QCloseEvent,
+    QColor,
+    QIcon,
+    QKeySequence,
+    QMouseEvent,
+    QPainter,
+    QPen,
+    QPixmap,
+)
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
     QApplication,
@@ -36,13 +49,13 @@ from session_history import SessionHistory, SessionRecord, compute_mas
 from settings import MinimapRect, RegionStore, SavedRegion, Settings
 from tracker import BeamStatus, BeamTracker, get_screen_resolution
 from ui.alert_overlay import AlertOverlay
-from ui.beam_status_widget import BeamStatusWidget
 from ui.setup_overlay import MinimapSetupOverlay
 from ui.styles import (
     CARD_BORDER,
     PURPLE,
     SUCCESS_GREEN,
     SURFACE,
+    WARNING_AMBER,
     TEXT_PRIMARY,
     TEXT_SECONDARY,
     TEXT_TERTIARY,
@@ -55,6 +68,30 @@ logger = logging.getLogger(__name__)
 
 POLL_INTERVAL_MS = 33
 STATUS_CHECK_INTERVAL_MS = 2000
+DEFAULT_HOTKEY = ""
+_HOTKEY_ID = 0xBEEF
+
+_MOD_FLAGS = {"alt": 0x0001, "ctrl": 0x0002, "shift": 0x0004}
+_KEY_TO_VK: dict[str, int] = {}
+for _c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
+    _KEY_TO_VK[_c.lower()] = ord(_c)
+for _d in "0123456789":
+    _KEY_TO_VK[_d] = ord(_d)
+for _i in range(1, 25):
+    _KEY_TO_VK[f"f{_i}"] = 0x6F + _i
+
+
+def _parse_hotkey(s: str) -> tuple[int, int]:
+    """Parse 'Alt+Shift+M' into (win32_modifiers, virtual_key_code)."""
+    parts = [p.strip().lower() for p in s.split("+")]
+    mods = 0
+    vk = 0
+    for p in parts:
+        if p in _MOD_FLAGS:
+            mods |= _MOD_FLAGS[p]
+        elif p in _KEY_TO_VK:
+            vk = _KEY_TO_VK[p]
+    return mods, vk
 
 
 # -- Tooltip positioning filter -------------------------------------------
@@ -89,6 +126,19 @@ def _section_header(text: str) -> QLabel:
     lbl = QLabel(text.upper())
     lbl.setProperty("class", "section")
     return lbl
+
+
+class _OpaqueComboBox(QComboBox):
+    """QComboBox whose dropdown popup always has an opaque background."""
+
+    def showPopup(self) -> None:
+        super().showPopup()
+        popup = self.view().window()
+        popup.setAutoFillBackground(True)
+        popup.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
+        popup.setStyleSheet(
+            f"background-color: #1E2028; border: 1px solid {CARD_BORDER}; border-radius: 4px;"
+        )
 
 
 def _divider() -> QFrame:
@@ -143,6 +193,29 @@ class _TitleBar(QWidget):
         layout.addWidget(self._title_label)
         layout.addStretch()
 
+        # Beam status indicator
+        self._status_dot = QLabel("\u25CF")
+        self._status_dot.setFixedWidth(22)
+        self._status_dot.setStyleSheet(f"font-size: 18px; color: {TEXT_TERTIARY};")
+        layout.addWidget(self._status_dot)
+        layout.addSpacing(6)
+
+        self._status_link = QPushButton("Beam Eye Tracker")
+        self._status_link.setStyleSheet(
+            f"QPushButton {{ border: none; background: transparent; color: {TEXT_PRIMARY}; "
+            f"font-size: 13px; font-weight: 700; padding: 0; }}"
+            f"QPushButton:hover {{ color: #8F78FF; }}"
+        )
+        self._status_link.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._status_link.clicked.connect(lambda: __import__("webbrowser").open("https://beameyetracker.com"))
+        layout.addWidget(self._status_link)
+
+        self._status_text = QLabel("")
+        self._status_text.setStyleSheet(f"font-size: 11px; color: {TEXT_TERTIARY};")
+        layout.addWidget(self._status_text)
+
+        layout.addSpacing(16)
+
         btn_css = (
             "QPushButton {{ background: transparent; border: none; "
             f"color: {TEXT_TERTIARY}; font-size: 15px; "
@@ -152,13 +225,26 @@ class _TitleBar(QWidget):
         )
         for symbol, hover, bg, slot in [
             ("\u2013", TEXT_PRIMARY, "#2A2D35", parent.showMinimized),
-            ("\u25A1", TEXT_PRIMARY, "#2A2D35", self._toggle_max),
             ("\u2715", "#FFF", "#E53935", parent.close),
         ]:
             btn = QPushButton(symbol)
             btn.setStyleSheet(btn_css.format(hover=hover, bg=bg))
             btn.clicked.connect(slot)
             layout.addWidget(btn)
+
+    def set_beam_status(self, status) -> None:
+        from tracker import BeamStatus
+        from ui.styles import SUCCESS_GREEN, WARNING_AMBER, ERROR_YELLOW
+        _map = {
+            BeamStatus.TRACKING: (SUCCESS_GREEN, " connected"),
+            BeamStatus.CONNECTING: (WARNING_AMBER, " connecting..."),
+            BeamStatus.NOT_RUNNING: (ERROR_YELLOW, " not running"),
+            BeamStatus.NOT_INSTALLED: (ERROR_YELLOW, " SDK not found"),
+        }
+        color, text = _map.get(status, (TEXT_TERTIARY, ""))
+        self._status_dot.setStyleSheet(f"font-size: 18px; color: {color};")
+        self._status_text.setText(text)
+        self._status_text.setStyleSheet(f"font-size: 11px; color: {TEXT_PRIMARY};")
 
     def _toggle_max(self) -> None:
         if self._window.isMaximized():
@@ -213,6 +299,9 @@ class MainWindow(QMainWindow):
 
         self._session_history = SessionHistory()
         self._irl_webhook = IRLWebhook()
+        self._capturing_hotkey = False
+        self._hotkey_registered = False
+        self._force_first_time = self._debug or self._settings.first_run
 
         screen_w, screen_h = get_screen_resolution()
         self._physical_screen_w = screen_w
@@ -231,7 +320,7 @@ class MainWindow(QMainWindow):
         self._load_settings_into_ui()
         self._tracker.attempt_auto_start()
 
-        if self._settings.first_run:
+        if self._force_first_time:
             QTimer.singleShot(300, self._show_onboarding)
 
     # ==================================================================
@@ -242,8 +331,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("MapSense")
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Window)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
-        self.setMinimumWidth(480)
-        self.resize(520, 100)
+        self.setMinimumWidth(740)
+        self.resize(760, 100)
         self.setWindowIcon(self._app_icon())
 
     @staticmethod
@@ -258,7 +347,6 @@ class MainWindow(QMainWindow):
         svg_path = cls._favicon_path()
         if os.path.isfile(svg_path):
             return QIcon(svg_path)
-        from PySide6.QtGui import QPainter, QBrush
         px = QPixmap(64, 64)
         px.fill(Qt.GlobalColor.transparent)
         p = QPainter(px)
@@ -277,7 +365,6 @@ class MainWindow(QMainWindow):
         """Render the SVG favicon to a QPixmap at the given size."""
         svg_path = cls._favicon_path()
         if os.path.isfile(svg_path):
-            from PySide6.QtGui import QPainter
             renderer = QSvgRenderer(svg_path)
             px = QPixmap(QSize(size, size))
             px.fill(Qt.GlobalColor.transparent)
@@ -302,49 +389,89 @@ class MainWindow(QMainWindow):
         outer.addWidget(self._title_bar)
 
         content = QWidget()
-        root = QVBoxLayout(content)
-        root.setContentsMargins(28, 0, 28, 18)
-        root.setSpacing(0)
+        content_lay = QVBoxLayout(content)
+        content_lay.setContentsMargins(28, 0, 28, 18)
+        content_lay.setSpacing(0)
         outer.addWidget(content)
 
-        # -- Beam status (top) --------------------------------------------
-        self._status_widget = BeamStatusWidget()
-        root.addWidget(self._status_widget)
-        root.addWidget(_spacer(16))
-
-        # -- Minimap Region -----------------------------------------------
-        root.addWidget(_section_header("Minimap Region"))
-        root.addWidget(_spacer(10))
-
-        # Primary CTA for first-time users (no region yet)
-        self._region_cta = QPushButton("Select zone on screen")
-        self._region_cta.setObjectName("startButton")
-        self._region_cta.setMinimumHeight(50)
+        # -- First-time CTA (full width, shown only when no region) --------
+        self._region_cta = QPushButton("Select region on screen")
+        self._region_cta.setMinimumHeight(60)
+        self._region_cta.setStyleSheet(
+            f"QPushButton {{ background-color: {PURPLE}; color: white; border: none; "
+            f"border-radius: 10px; font-size: 16px; font-weight: 700; }}"
+            f"QPushButton:hover {{ background-color: #8F78FF; }}"
+        )
         self._region_cta.setToolTip(
             "Opens a full-screen overlay.\n"
-            "Click and drag to mark your minimap, then press Enter to confirm."
+            "Drag a rectangle over your minimap, press Enter.\n"
+            "MapSense needs to know what you keep ignoring."
         )
         self._region_cta.clicked.connect(self._open_region_overlay)
-        root.addWidget(self._region_cta)
-        root.addWidget(_spacer(6))
+        content_lay.addWidget(self._region_cta)
+        content_lay.addWidget(_spacer(6))
 
-        self._region_cta_hint = QLabel("Mark the minimap area on your screen to get started")
-        self._region_cta_hint.setStyleSheet(
-            f"font-size: 11px; color: {TEXT_TERTIARY};"
-        )
+        self._region_cta_hint = QLabel("Mark your minimap area to get started")
+        self._region_cta_hint.setStyleSheet(f"font-size: 11px; color: {TEXT_TERTIARY};")
         self._region_cta_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        root.addWidget(self._region_cta_hint)
+        content_lay.addWidget(self._region_cta_hint)
 
-        # Returning-user region management (combo + actions)
+        # -- Two-column layout (shown when region exists) ------------------
+        self._two_col_panel = QWidget()
+        self._two_col_panel.setStyleSheet("background: transparent;")
+        two_col = QHBoxLayout(self._two_col_panel)
+        two_col.setContentsMargins(0, 0, 0, 0)
+        two_col.setSpacing(0)
+
+        left_w = QWidget()
+        left_w.setStyleSheet("background: transparent;")
+        left = QVBoxLayout(left_w)
+        left.setContentsMargins(0, 0, 20, 0)
+        left.setSpacing(0)
+        self._build_left_column(left)
+        left.addStretch()
+        two_col.addWidget(left_w, stretch=1)
+
+        vdiv = QFrame()
+        vdiv.setFrameShape(QFrame.Shape.VLine)
+        vdiv.setFixedWidth(1)
+        vdiv.setStyleSheet(f"background-color: {CARD_BORDER}; border: none;")
+        two_col.addWidget(vdiv)
+
+        right_w = QWidget()
+        right_w.setStyleSheet("background: transparent;")
+        right = QVBoxLayout(right_w)
+        right.setContentsMargins(20, 0, 0, 0)
+        right.setSpacing(0)
+        self._build_right_column(right)
+        right.addStretch()
+        two_col.addWidget(right_w, stretch=1)
+
+        content_lay.addWidget(self._two_col_panel)
+
+        # Debug
+        self._debug_label = QLabel("")
+        self._debug_label.setStyleSheet(f"color: {TEXT_TERTIARY}; font-size: 10px;")
+        self._debug_label.setVisible(self._debug)
+        content_lay.addWidget(self._debug_label)
+
+        self._update_slider_labels()
+        self._update_region_ui()
+        self.adjustSize()
+
+    def _build_left_column(self, left: QVBoxLayout) -> None:
+        """Build the left panel: region management + settings + start button."""
+        left.addWidget(_section_header("Settings"))
+        left.addWidget(_spacer(10))
+
         self._region_manager = QWidget()
-        self._region_manager.setStyleSheet("background: transparent;")
         rm = QVBoxLayout(self._region_manager)
         rm.setContentsMargins(0, 0, 0, 0)
         rm.setSpacing(0)
 
         combo_row = QHBoxLayout()
         combo_row.setSpacing(8)
-        self._saved_combo = QComboBox()
+        self._saved_combo = _OpaqueComboBox()
         self._saved_combo.setToolTip(
             "Select a saved screen region, or choose \"New region\" to create one"
         )
@@ -353,21 +480,31 @@ class MainWindow(QMainWindow):
         rm.addLayout(combo_row)
         rm.addSpacing(8)
 
-        # New-region panel (name + select + save)
         self._new_region_panel = QWidget()
         self._new_region_panel.setStyleSheet("background: transparent;")
         nr = QVBoxLayout(self._new_region_panel)
         nr.setContentsMargins(0, 0, 0, 0)
         nr.setSpacing(8)
 
-        self._set_region_btn = QPushButton("Select on screen")
+        self._set_region_btn = QPushButton("Select region on screen")
         self._set_region_btn.setToolTip(
             "Opens a full-screen overlay.\n"
-            "Click and drag to mark the region, then press Enter."
+            "Click and drag to mark the region, then press Enter.\n"
+            "Show us where you refuse to look."
         )
         self._set_region_btn.setMinimumHeight(40)
+        self._set_region_btn.setStyleSheet(
+            f"QPushButton {{ background-color: {PURPLE}; color: white; border: none; "
+            f"border-radius: 8px; font-size: 13px; font-weight: 700; }}"
+            f"QPushButton:hover {{ background-color: #8F78FF; }}"
+        )
         self._set_region_btn.clicked.connect(self._open_region_overlay)
         nr.addWidget(self._set_region_btn)
+
+        self._below_select = QWidget()
+        bs = QVBoxLayout(self._below_select)
+        bs.setContentsMargins(0, 0, 0, 0)
+        bs.setSpacing(8)
 
         name_row = QHBoxLayout()
         name_row.setSpacing(8)
@@ -381,12 +518,19 @@ class MainWindow(QMainWindow):
         self._save_region_btn.setToolTip("Save this region so you can use it again later")
         self._save_region_btn.setEnabled(False)
         self._save_region_btn.setFixedHeight(38)
+        self._save_region_btn.setStyleSheet(
+            f"QPushButton {{ background-color: {PURPLE}; color: white; border: none; "
+            f"border-radius: 10px; font-size: 13px; font-weight: 700; padding: 10px 20px; }}"
+            f"QPushButton:hover {{ background-color: #8F78FF; }}"
+            f"QPushButton:pressed {{ background-color: #6B51EF; }}"
+            f"QPushButton:disabled {{ background-color: #1E2030; color: {TEXT_TERTIARY}; }}"
+        )
         self._save_region_btn.clicked.connect(self._on_save_region)
         name_row.addWidget(self._save_region_btn)
-        nr.addLayout(name_row)
+        bs.addLayout(name_row)
+        nr.addWidget(self._below_select)
         rm.addWidget(self._new_region_panel)
 
-        # Inline actions for saved regions
         self._saved_actions = QWidget()
         self._saved_actions.setStyleSheet("background: transparent;")
         sa = QHBoxLayout(self._saved_actions)
@@ -432,79 +576,73 @@ class MainWindow(QMainWindow):
         sa.addStretch()
         rm.addWidget(self._saved_actions)
 
-        root.addWidget(self._region_manager)
+        rm.addSpacing(12)
+        self._build_slider_row(
+            rm, "Detection margin",
+            "Adds a forgiving border around your minimap region.\n"
+            "Higher = we'll count it even if your aim is as bad as your map awareness.",
+            0, 30, int(self._settings.gaze_tolerance),
+        )
+        self._tolerance_slider = self._last_slider
+        self._tolerance_label = self._last_value_label
+        self._tolerance_slider.valueChanged.connect(self._on_tolerance_changed)
 
-        root.addWidget(_spacer(14))
-        root.addWidget(_divider())
-        root.addWidget(_spacer(14))
-
-        # == Everything below here is inside _config_panel ================
-        # Hidden until the user has at least one region.
-        self._config_panel = QWidget()
-        self._config_panel.setStyleSheet("QWidget { background: transparent; }")
-        cp = QVBoxLayout(self._config_panel)
-        cp.setContentsMargins(0, 0, 0, 0)
-        cp.setSpacing(0)
-
-        # -- Settings -----------------------------------------------------
-        cp.addWidget(_section_header("Settings"))
-        cp.addWidget(_spacer(12))
+        left.addWidget(self._region_manager)
+        left.addWidget(_spacer(14))
 
         self._build_slider_row(
-            cp, "Alarm timeout",
-            "How many seconds you can look away before the alert fires.\nLower = stricter training.",
+            left, "Alarm timeout",
+            "How many seconds before the bell rings.\nLower = stricter training. Set it to 1 if you hate yourself.",
             5, 300, int(self._settings.timeout_seconds * 10),
         )
         self._timeout_slider = self._last_slider
         self._timeout_label = self._last_value_label
         self._timeout_slider.valueChanged.connect(self._on_timeout_changed)
-        cp.addWidget(_spacer(12))
+        left.addWidget(_spacer(12))
 
         self._build_slider_row(
-            cp, "Volume",
-            "Alert sound volume. Set to 0 to mute.",
+            left, "Volume",
+            "How loud the bell rings. Set to 0 if your neighbours\nalready think you're training a dog.",
             0, 100, self._settings.volume,
         )
         self._volume_slider = self._last_slider
         self._volume_label = self._last_value_label
         self._volume_slider.valueChanged.connect(self._on_volume_changed)
-        cp.addWidget(_spacer(12))
+        left.addWidget(_spacer(12))
 
-        # Alert type
         mode_lbl = QLabel("Alert type")
         mode_lbl.setToolTip(
-            "Choose how MapSense alerts you when you forget the minimap.\n"
-            "You can combine Audio, Visual, and IRL.\n"
-            "Pick Silent to disable all alerts and only track metrics."
+            "Pick your conditioning method. Pavlov approves all of them.\n"
+            "Combine Audio, Visual, and IRL for maximum stimulus.\n"
+            "Or pick Silent if you just want to observe your bad habits."
         )
         _enable_tooltip_below(mode_lbl)
-        cp.addWidget(mode_lbl)
-        cp.addWidget(_spacer(6))
+        left.addWidget(mode_lbl)
+        left.addWidget(_spacer(6))
 
         mode_row = QHBoxLayout()
         mode_row.setSpacing(4)
 
         _tooltips = {
             "Silent": (
-                "No alerts at all. MapSense silently tracks your gaze\n"
-                "and records all metrics and your MapSense Score.\n"
-                "Use this when you just want to measure your awareness\n"
-                "without being interrupted."
+                "No bell, no flash, no shock collar.\n"
+                "MapSense watches silently and takes notes.\n"
+                "Like a disappointed scientist."
             ),
             "Visual": (
-                "Flashes a purple overlay on top of the minimap region.\n"
-                "Visible even over fullscreen games.\n"
-                "Stops flashing the moment you glance at the map."
+                "Flashes your minimap purple when you tunnel vision.\n"
+                "Consider it a gentle nudge from Pavlov himself.\n"
+                "Look at the map and it stops judging you."
             ),
             "Audio": (
-                "Plays a repeating alarm sound when you forget to check the map.\n"
-                "Adjust volume with the slider above.\n"
-                "The alarm stops instantly when you look at the minimap."
+                "Ding ding ding. Forgot the minimap again?\n"
+                "This alarm won't stop until you look.\n"
+                "Good boy. Now check the map."
             ),
             "IRL": (
-                "Triggers a physical device when you forget the minimap.\n"
-                "MapSense sends HTTP webhooks that your hardware listens for.\n"
-                "Build fun projects like LED strips, desk flags, or buzzers."
+                "Wire up a real buzzer, LED strip, or whatever cursed\n"
+                "contraption you can dream up. MapSense sends webhooks,\n"
+                "your hardware does the rest. Pavlov would be proud."
             ),
         }
 
@@ -525,18 +663,14 @@ class MainWindow(QMainWindow):
         self._visual_btn.setChecked(self._settings.alert_mode.visual)
         if not self._settings.alert_mode.audio and not self._settings.alert_mode.visual:
             self._silent_btn.setChecked(True)
-        cp.addLayout(mode_row)
-        cp.addWidget(_spacer(4))
+        left.addLayout(mode_row)
+        left.addWidget(_spacer(4))
 
-        # Sub-links under Audio and IRL
         sub_links = QHBoxLayout()
         sub_links.setContentsMargins(0, 0, 0, 0)
         sub_links.setSpacing(0)
-
-        # Spacer for Silent + Visual columns
         sub_links.addStretch(2)
 
-        # "Custom Sound" under Audio
         audio_sub = QHBoxLayout()
         audio_sub.setSpacing(4)
         self._custom_sound_link = QPushButton("Custom Sound")
@@ -547,8 +681,9 @@ class MainWindow(QMainWindow):
         )
         self._custom_sound_link.setCursor(Qt.CursorShape.PointingHandCursor)
         self._custom_sound_link.setToolTip(
-            "Upload your own alert sound (MP3, WAV, OGG, FLAC).\n"
-            "Replaces the default beep. The file is saved across sessions."
+            "Upload your own alert sound. Rick roll yourself\n"
+            "every time you forget the map. We don't judge.\n"
+            "MP3, WAV, OGG, FLAC."
         )
         self._custom_sound_link.clicked.connect(self._upload_custom_sound)
         audio_sub.addWidget(self._custom_sound_link)
@@ -567,14 +702,13 @@ class MainWindow(QMainWindow):
         audio_sub.addStretch()
         sub_links.addLayout(audio_sub, stretch=1)
 
-        # "Ask an AI" under IRL
         _chatgpt_prompt = (
             "I am using MapSense (https://beameyetracker.com), a desktop app that trains "
             "minimap awareness for gamers using the Beam Eye Tracker. When I forget to check "
             "my minimap, MapSense sends HTTP POST webhooks from localhost:9876 with JSON body "
             "{\"event\": \"alert_start\"} or {\"event\": \"alert_stop\"}. "
             "It also exposes GET http://localhost:9876/status for polling.\n\n"
-            "I want to build a fun, safe, desk-friendly physical alert gadget that lights up "
+            "I want to build a creative, safe, desk-friendly physical alert gadget that lights up "
             "or makes noise when I get a webhook. Give me concise, exact, copy-paste-ready "
             "instructions for:\n"
             "1. Hardware shopping list (Raspberry Pi, Arduino, or ESP32 based)\n"
@@ -595,9 +729,9 @@ class MainWindow(QMainWindow):
         )
         self._irl_ai_link.setCursor(Qt.CursorShape.PointingHandCursor)
         self._irl_ai_link.setToolTip(
-            "Opens ChatGPT with a detailed prompt that will give you\n"
-            "step-by-step hardware and code instructions for building\n"
-            "a fun desk gadget that reacts to MapSense alerts."
+            "Opens ChatGPT with a build guide for a physical alert\n"
+            "gadget. Desk buzzer? LED tower? Flag that pops up?\n"
+            "Go wild. You're conditioning yourself anyway."
         )
         self._irl_ai_link.clicked.connect(
             lambda: webbrowser.open(
@@ -608,20 +742,8 @@ class MainWindow(QMainWindow):
         irl_sub.addStretch()
         sub_links.addLayout(irl_sub, stretch=1)
 
-        cp.addLayout(sub_links)
-        cp.addWidget(_spacer(12))
-
-        self._build_slider_row(
-            cp, "Detection margin",
-            "Adds an invisible border around the region to compensate\n"
-            "for eye-tracking inaccuracy. Higher = more forgiving.",
-            0, 30, int(self._settings.gaze_tolerance),
-        )
-        self._tolerance_slider = self._last_slider
-        self._tolerance_label = self._last_value_label
-        self._tolerance_slider.valueChanged.connect(self._on_tolerance_changed)
-
-        cp.addWidget(_spacer(20))
+        left.addLayout(sub_links)
+        left.addWidget(_spacer(20))
 
         # -- Start button -------------------------------------------------
         self._start_btn = QPushButton("Start Training")
@@ -637,29 +759,17 @@ class MainWindow(QMainWindow):
             f"QPushButton:disabled {{ background-color: #1E2030; color: {TEXT_TERTIARY}; }}"
         )
         self._start_btn.clicked.connect(self._toggle_training)
-        cp.addWidget(self._start_btn)
+        left.addWidget(self._start_btn)
 
-        cp.addWidget(_spacer(14))
-        cp.addWidget(_divider())
-        cp.addWidget(_spacer(14))
+        # -- Hotkey row ---------------------------------------------------
+        left.addWidget(_spacer(8))
+        self._build_hotkey_row(left)
 
-        # -- Metrics ------------------------------------------------------
-        metrics_header = QHBoxLayout()
-        metrics_lbl = QLabel("METRICS")
-        metrics_lbl.setStyleSheet(
-            f"font-size: 11px; font-weight: 600; color: {TEXT_SECONDARY}; "
-            f"letter-spacing: 0.5px;"
-        )
-        metrics_powered = QLabel("powered by the Beam Eye Tracker")
-        metrics_powered.setStyleSheet(f"font-size: 10px; color: {TEXT_TERTIARY};")
-        metrics_header.addWidget(metrics_lbl)
-        metrics_header.addSpacing(6)
-        metrics_header.addWidget(metrics_powered)
-        metrics_header.addStretch()
-        cp.addLayout(metrics_header)
-        cp.addWidget(_spacer(10))
+    def _build_right_column(self, right: QVBoxLayout) -> None:
+        """Build the right panel: metrics + social/history buttons."""
+        right.addWidget(_section_header("Metrics"))
+        right.addWidget(_spacer(10))
 
-        # MapSense Score hero
         mas_row = QHBoxLayout()
         mas_row.setContentsMargins(0, 0, 0, 0)
         mas_name = QLabel("MapSense Score")
@@ -694,8 +804,8 @@ class MainWindow(QMainWindow):
         )
         _enable_tooltip_below(self._mas_label)
         mas_row.addWidget(self._mas_label)
-        cp.addLayout(mas_row)
-        cp.addWidget(_spacer(10))
+        right.addLayout(mas_row)
+        right.addWidget(_spacer(10))
 
         _metric_tooltips = {
             "duration": "Total time elapsed since you pressed Start Training.",
@@ -763,70 +873,94 @@ class MainWindow(QMainWindow):
             val_lbl = QLabel("-")
             val_lbl.setStyleSheet(f"font-size: 13px; color: {TEXT_PRIMARY}; font-weight: 600;")
             row.addWidget(val_lbl)
-            cp.addLayout(row)
+            right.addLayout(row)
             self._stat_labels[key] = val_lbl
 
-        cp.addWidget(_spacer(12))
-        cp.addWidget(_divider())
-        cp.addWidget(_spacer(10))
-
-        # Bottom buttons: social icons left, Historical Data right
-        bottom_row = QHBoxLayout()
-        bottom_row.setSpacing(8)
-
-        _icon_btn_css = (
-            f"QPushButton {{ border: 1px solid {CARD_BORDER}; background: transparent; "
-            f"font-size: 11px; font-weight: 700; padding: 5px 10px; border-radius: 6px; }}"
-        )
-
-        self._share_btn = QPushButton("reddit")
-        self._share_btn.setStyleSheet(
-            _icon_btn_css
-            + f"QPushButton {{ color: #FF4500; }}"
-            + f"QPushButton:hover {{ background: #FF450018; border-color: #FF450055; }}"
-        )
-        self._share_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._share_btn.setToolTip("Share your session stats on Reddit")
-        self._share_btn.clicked.connect(self._share_to_reddit)
-        bottom_row.addWidget(self._share_btn)
-
-        self._discord_btn = QPushButton("discord")
-        self._discord_btn.setStyleSheet(
-            _icon_btn_css
-            + f"QPushButton {{ color: #5865F2; }}"
-            + f"QPushButton:hover {{ background: #5865F218; border-color: #5865F255; }}"
-        )
-        self._discord_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._discord_btn.setToolTip("Join the Beam Eye Tracker Discord community")
-        self._discord_btn.clicked.connect(lambda: webbrowser.open(DISCORD_URL))
-        bottom_row.addWidget(self._discord_btn)
-
-        bottom_row.addStretch()
+        right.addWidget(_spacer(12))
+        right.addWidget(_divider())
+        right.addWidget(_spacer(10))
 
         self._history_btn = QPushButton("Historical Data")
         self._history_btn.setStyleSheet(
-            _icon_btn_css
-            + f"QPushButton {{ color: {TEXT_SECONDARY}; font-weight: 600; padding: 6px 14px; }}"
-            + f"QPushButton:hover {{ background: #252830; border-color: #3A3D48; }}"
+            f"QPushButton {{ background-color: {PURPLE}; color: white; border: none; "
+            f"border-radius: 8px; font-size: 12px; font-weight: 700; padding: 8px 16px; }}"
+            f"QPushButton:hover {{ background-color: #8F78FF; }}"
+            f"QPushButton:pressed {{ background-color: #6B51EF; }}"
         )
         self._history_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._history_btn.setToolTip("View your MapSense Score and metrics over past sessions as charts")
         self._history_btn.clicked.connect(self._show_history)
-        bottom_row.addWidget(self._history_btn)
+        right.addWidget(self._history_btn)
 
-        cp.addLayout(bottom_row)
+        right.addWidget(_spacer(12))
 
-        root.addWidget(self._config_panel)
+        _social_css = (
+            f"QPushButton {{ border: none; background: transparent; color: {PURPLE}; "
+            f"font-size: 11px; font-weight: 600; padding: 2px 0; }}"
+            f"QPushButton:hover {{ color: #8F78FF; text-decoration: underline; }}"
+        )
 
-        # Debug
-        self._debug_label = QLabel("")
-        self._debug_label.setStyleSheet(f"color: {TEXT_TERTIARY}; font-size: 10px;")
-        self._debug_label.setVisible(self._debug)
-        root.addWidget(self._debug_label)
+        social_row = QHBoxLayout()
+        social_row.setSpacing(16)
+        social_row.addStretch()
 
-        self._update_slider_labels()
-        self._update_region_ui()
-        self.adjustSize()
+        self._discord_btn = QPushButton("\U0001f4ac  Join our Discord")
+        self._discord_btn.setStyleSheet(_social_css)
+        self._discord_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._discord_btn.setToolTip("Join the Beam Eye Tracker Discord community")
+        self._discord_btn.clicked.connect(lambda: webbrowser.open(DISCORD_URL))
+        social_row.addWidget(self._discord_btn)
+
+        self._share_btn = QPushButton("\U0001f4e2  Share on Reddit")
+        self._share_btn.setStyleSheet(_social_css)
+        self._share_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._share_btn.setToolTip("Share your session stats on Reddit")
+        self._share_btn.clicked.connect(self._share_to_reddit)
+        social_row.addWidget(self._share_btn)
+
+        right.addLayout(social_row)
+
+    _HOTKEY_PLACEHOLDER = "Set hotkey..."
+
+    def _build_hotkey_row(self, parent: QVBoxLayout) -> None:
+        """Hotkey indicator below the start button: click to assign, X to clear."""
+        row = QHBoxLayout()
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(6)
+        row.addStretch()
+
+        hotkey_str = self._settings.hotkey
+        display = hotkey_str if hotkey_str else self._HOTKEY_PLACEHOLDER
+        is_placeholder = not hotkey_str
+        self._hotkey_btn = QPushButton(display)
+        self._hotkey_btn.setStyleSheet(
+            f"QPushButton {{ border: none; background: transparent; "
+            f"color: {TEXT_TERTIARY if is_placeholder else TEXT_PRIMARY}; "
+            f"font-size: 11px; padding: 2px 6px; text-decoration: underline; }}"
+            f"QPushButton:hover {{ color: {PURPLE}; }}"
+        )
+        self._hotkey_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._hotkey_btn.setToolTip(
+            "Global hotkey to start/stop training.\n"
+            "Click to assign. Works even when MapSense is minimized."
+        )
+        self._hotkey_btn.clicked.connect(self._start_hotkey_capture)
+        row.addWidget(self._hotkey_btn)
+
+        self._hotkey_clear = QPushButton("\u2715")
+        self._hotkey_clear.setStyleSheet(
+            f"QPushButton {{ border: none; background: transparent; color: {TEXT_TERTIARY}; "
+            f"font-size: 9px; padding: 0 2px; min-width: 12px; }}"
+            f"QPushButton:hover {{ color: #FF4444; }}"
+        )
+        self._hotkey_clear.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._hotkey_clear.setToolTip("Remove hotkey")
+        self._hotkey_clear.setVisible(bool(hotkey_str))
+        self._hotkey_clear.clicked.connect(self._revert_hotkey)
+        row.addWidget(self._hotkey_clear)
+
+        row.addStretch()
+        parent.addLayout(row)
 
     def _build_slider_row(self, parent: QVBoxLayout, label: str, tooltip: str,
                           min_v: int, max_v: int, value: int) -> None:
@@ -895,11 +1029,13 @@ class MainWindow(QMainWindow):
         self._tray.toggle_training.connect(self._toggle_training)
         self._tray.quit_requested.connect(self._quit_app)
         self._tray.show()
+        self._update_status_icon()
 
     def _show_from_tray(self) -> None:
         self.showNormal(); self.activateWindow(); self.raise_()
 
     def _quit_app(self) -> None:
+        self._unregister_global_hotkey()
         self._stop_training(); self._tray.hide(); QApplication.quit()
 
     # ==================================================================
@@ -937,6 +1073,7 @@ class MainWindow(QMainWindow):
                 self._saved_combo.blockSignals(False)
         self._update_region_ui()
         self._update_slider_labels()
+        self._register_global_hotkey()
 
     def _save_settings(self) -> None:
         self._settings.timeout_seconds = self._timeout_slider.value() / 10.0
@@ -1017,6 +1154,7 @@ class MainWindow(QMainWindow):
         self._setup_overlay.showFullScreen()
 
     def _on_region_selected(self, rect: QRect) -> None:
+        self._force_first_time = False
         self._current_minimap_region = MinimapRegion(
             x=rect.x(), y=rect.y(), width=rect.width(), height=rect.height(),
         )
@@ -1039,20 +1177,23 @@ class MainWindow(QMainWindow):
 
         # First-time vs returning user
         ever_had_region = has_region or bool(has_any_saved)
-        self._region_cta.setVisible(not ever_had_region)
-        self._region_cta_hint.setVisible(not ever_had_region)
-        self._region_manager.setVisible(ever_had_region)
-        self._config_panel.setVisible(ever_had_region)
+        show_full_ui = ever_had_region and not self._force_first_time
+        self._region_cta.setVisible(not show_full_ui)
+        self._region_cta_hint.setVisible(not show_full_ui)
+        self._two_col_panel.setVisible(show_full_ui)
 
         # Within region manager
         self._new_region_panel.setVisible(not is_saved)
         self._saved_actions.setVisible(is_saved)
         self._save_region_btn.setEnabled(has_region and has_name and not is_saved)
 
+        # Grey out everything below "Select region on screen" until a region exists
+        self._below_select.setEnabled(has_region)
+
         ready = has_region and (has_name or is_saved)
         if not self._training_active:
             self._start_btn.setEnabled(ready)
-            self._start_btn.setText("Start Training" if ready else "Select a Region to Begin")
+            self._start_btn.setText("Start Training" if ready else "Select a region on screen to begin")
 
         self._start_btn.style().unpolish(self._start_btn)
         self._start_btn.style().polish(self._start_btn)
@@ -1283,6 +1424,7 @@ class MainWindow(QMainWindow):
         )
         self._set_controls_enabled(False)
         self._tray.set_training_state(True)
+        self._update_status_icon()
         self._save_settings()
         logger.info("Training started")
 
@@ -1311,6 +1453,7 @@ class MainWindow(QMainWindow):
         self._set_controls_enabled(True)
         self._update_region_ui()
         self._tray.set_training_state(False)
+        self._update_status_icon()
         self._debug_label.setText("")
         logger.info("Training stopped")
 
@@ -1394,7 +1537,8 @@ class MainWindow(QMainWindow):
         status = self._tracker.get_status()
         if status != self._current_beam_status:
             self._current_beam_status = status
-            self._status_widget.set_status(status)
+            self._title_bar.set_beam_status(status)
+            self._update_status_icon()
             logger.info("Beam status: %s", status.value)
             if status == BeamStatus.NOT_RUNNING and self._tracker._sdk_available:
                 self._tracker.attempt_auto_start()
@@ -1409,6 +1553,165 @@ class MainWindow(QMainWindow):
             return None
         tol = float(self._tolerance_slider.value())
         return r.with_tolerance(tol, self._screen_width) if tol > 0 else r
+
+    # ==================================================================
+    # Global hotkey
+    # ==================================================================
+
+    def _register_global_hotkey(self) -> None:
+        if sys.platform != "win32":
+            return
+        self._unregister_global_hotkey()
+        hotkey_str = self._settings.hotkey
+        if not hotkey_str:
+            return
+        mods, vk = _parse_hotkey(hotkey_str)
+        if vk == 0:
+            return
+        try:
+            hwnd = int(self.winId())
+            result = ctypes.windll.user32.RegisterHotKey(hwnd, _HOTKEY_ID, mods, vk)
+            self._hotkey_registered = result != 0
+            if self._hotkey_registered:
+                logger.info("Global hotkey registered: %s (hwnd=%s)", hotkey_str, hwnd)
+            else:
+                logger.warning("Failed to register hotkey: %s (may be in use)", hotkey_str)
+        except Exception:
+            logger.exception("Error registering hotkey")
+
+    def _unregister_global_hotkey(self) -> None:
+        if sys.platform != "win32" or not self._hotkey_registered:
+            return
+        try:
+            hwnd = int(self.winId())
+            ctypes.windll.user32.UnregisterHotKey(hwnd, _HOTKEY_ID)
+            self._hotkey_registered = False
+        except Exception:
+            logger.exception("Error unregistering hotkey")
+
+    def nativeEvent(self, eventType, message):
+        if eventType == b"windows_generic_MSG" and self._hotkey_registered:
+            msg = ctypes.wintypes.MSG.from_address(int(message))
+            if msg.message == 0x0312 and msg.wParam == _HOTKEY_ID:
+                self._toggle_training()
+                return True, 0
+        return super().nativeEvent(eventType, message)
+
+    def _start_hotkey_capture(self) -> None:
+        self._unregister_global_hotkey()
+        self._capturing_hotkey = True
+        self._hotkey_btn.setText("Press keys...")
+        self._hotkey_btn.setStyleSheet(
+            f"QPushButton {{ border: 1px solid {PURPLE}; background: {SURFACE}; "
+            f"color: {TEXT_PRIMARY}; font-size: 11px; padding: 2px 6px; border-radius: 4px; }}"
+        )
+        self.grabKeyboard()
+
+    def _finish_hotkey_capture(self, hotkey_str: str) -> None:
+        self._capturing_hotkey = False
+        self.releaseKeyboard()
+        self._settings.hotkey = hotkey_str
+        self._settings.save()
+        self._hotkey_btn.setText(hotkey_str)
+        self._hotkey_btn.setStyleSheet(
+            f"QPushButton {{ border: none; background: transparent; color: {TEXT_PRIMARY}; "
+            f"font-size: 11px; padding: 2px 6px; text-decoration: underline; }}"
+            f"QPushButton:hover {{ color: {PURPLE}; }}"
+        )
+        self._hotkey_clear.setVisible(True)
+        self._register_global_hotkey()
+        logger.info("Hotkey changed to: %s", hotkey_str)
+
+    def _cancel_hotkey_capture(self) -> None:
+        self._capturing_hotkey = False
+        self.releaseKeyboard()
+        hotkey_str = self._settings.hotkey
+        is_placeholder = not hotkey_str
+        self._hotkey_btn.setText(hotkey_str if hotkey_str else self._HOTKEY_PLACEHOLDER)
+        self._hotkey_btn.setStyleSheet(
+            f"QPushButton {{ border: none; background: transparent; "
+            f"color: {TEXT_TERTIARY if is_placeholder else TEXT_PRIMARY}; "
+            f"font-size: 11px; padding: 2px 6px; text-decoration: underline; }}"
+            f"QPushButton:hover {{ color: {PURPLE}; }}"
+        )
+        self._register_global_hotkey()
+
+    def _revert_hotkey(self) -> None:
+        self._settings.hotkey = ""
+        self._settings.save()
+        self._hotkey_btn.setText(self._HOTKEY_PLACEHOLDER)
+        self._hotkey_btn.setStyleSheet(
+            f"QPushButton {{ border: none; background: transparent; color: {TEXT_TERTIARY}; "
+            f"font-size: 11px; padding: 2px 6px; text-decoration: underline; }}"
+            f"QPushButton:hover {{ color: {PURPLE}; }}"
+        )
+        self._hotkey_clear.setVisible(False)
+        self._unregister_global_hotkey()
+        logger.info("Hotkey removed")
+
+    def keyPressEvent(self, event) -> None:
+        if self._capturing_hotkey:
+            key = event.key()
+            if key in (Qt.Key.Key_Shift, Qt.Key.Key_Control, Qt.Key.Key_Alt, Qt.Key.Key_Meta):
+                return
+            if key == Qt.Key.Key_Escape:
+                self._cancel_hotkey_capture()
+                return
+            mods = event.modifiers()
+            parts: list[str] = []
+            if mods & Qt.KeyboardModifier.ControlModifier:
+                parts.append("Ctrl")
+            if mods & Qt.KeyboardModifier.AltModifier:
+                parts.append("Alt")
+            if mods & Qt.KeyboardModifier.ShiftModifier:
+                parts.append("Shift")
+            key_text = QKeySequence(key).toString()
+            if key_text:
+                parts.append(key_text)
+            if parts:
+                self._finish_hotkey_capture("+".join(parts))
+            return
+        super().keyPressEvent(event)
+
+    # ==================================================================
+    # Status icon overlay
+    # ==================================================================
+
+    def _icon_with_status_dot(self, color: str) -> QIcon:
+        """Composite a colored status dot onto the favicon."""
+        src = self._favicon_pixmap(64)
+        if src.isNull():
+            src = QPixmap(64, 64)
+            src.fill(Qt.GlobalColor.transparent)
+        base = src.copy()
+        p = QPainter(base)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        dot_size = 22
+        x = base.width() - dot_size - 2
+        y = base.height() - dot_size - 2
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(QBrush(QColor("#15171D")))
+        p.drawEllipse(x - 2, y - 2, dot_size + 4, dot_size + 4)
+        p.setBrush(QBrush(QColor(color)))
+        p.drawEllipse(x, y, dot_size, dot_size)
+        p.end()
+        return QIcon(base)
+
+    def _update_status_icon(self) -> None:
+        """Update tray and taskbar icon with a status indicator dot."""
+        if self._training_active:
+            color = SUCCESS_GREEN
+        elif self._current_beam_status == BeamStatus.TRACKING:
+            color = WARNING_AMBER
+        else:
+            color = "#808080"
+        icon = self._icon_with_status_dot(color)
+        if hasattr(self, "_tray"):
+            self._tray.setIcon(icon)
+        self.setWindowIcon(icon)
+        app = QApplication.instance()
+        if app:
+            app.setWindowIcon(icon)
 
     def closeEvent(self, event: QCloseEvent) -> None:
         if self._tray.isVisible():

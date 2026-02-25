@@ -25,9 +25,8 @@ class OnboardingDialog(QDialog):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Welcome to MapSense")
         self.setFixedSize(420, 380)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
         self.setStyleSheet(
             f"QDialog {{ background-color: #15171D; border: 1px solid {CARD_BORDER}; border-radius: 12px; }}"
             f"QLabel {{ background: transparent; color: {TEXT_PRIMARY}; }}"
@@ -47,12 +46,12 @@ class OnboardingDialog(QDialog):
         layout.addSpacing(24)
 
         steps = [
-            ("1", "Mark your minimap zone",
-             "Click the purple button, then drag a rectangle over your minimap and press Enter to confirm."),
+            ("1", "Select your minimap region",
+             "Click \"Select region on screen\", drag a rectangle over your minimap, and press Enter."),
             ("2", "Pick an alert style",
-             "Audio beep, visual flash, or both. Choose Silent if you only want stats."),
+             "Audio ding, visual flash, or both. Choose Silent if you just want stats. Every bell trains the reflex."),
             ("3", "Start training",
-             "Press Start Training and play your game. MapSense will alert you when you forget to check the map."),
+             "Hit Start Training and play. MapSense rings the bell when you forget to check the map."),
         ]
 
         for num, heading, desc in steps:

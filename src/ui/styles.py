@@ -237,11 +237,29 @@ def build_stylesheet() -> str:
 
     QComboBox QAbstractItemView {{
         background-color: #1E2028;
+        color: {TEXT_PRIMARY};
         border: 1px solid {CARD_BORDER};
         selection-background-color: {PURPLE};
         selection-color: white;
         padding: 4px;
-        border-radius: 8px;
+        border-radius: 4px;
+        outline: 0;
+    }}
+
+    QComboBox QAbstractItemView::item {{
+        background-color: #1E2028;
+        color: {TEXT_PRIMARY};
+        padding: 6px 10px;
+        border-radius: 2px;
+    }}
+
+    QComboBox QAbstractItemView::item:hover {{
+        background-color: #2A2D35;
+    }}
+
+    QComboBox QAbstractItemView::item:selected {{
+        background-color: {PURPLE};
+        color: white;
     }}
 
     /* -- Sliders ------------------------------------------------------ */
