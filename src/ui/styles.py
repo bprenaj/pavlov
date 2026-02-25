@@ -1,4 +1,4 @@
-"""Mapavlov visual theme: clean, minimal, Apple-inspired dark UI.
+"""MapSense visual theme: clean, minimal, Apple-inspired dark UI.
 
 Colour palette:
   - Purple accent          #7B61FF
@@ -65,6 +65,17 @@ def build_stylesheet() -> str:
         padding: 8px 12px;
         border-radius: 6px;
         font-size: 12px;
+    }}
+
+    /* Labels with tooltips show a subtle dashed underline on hover */
+    QLabel[hasTooltip="true"] {{
+        border-bottom: 1px dashed transparent;
+        padding-bottom: 1px;
+    }}
+
+    QLabel[hasTooltip="true"]:hover {{
+        color: {PURPLE_HOVER};
+        border-bottom: 1px dashed {PURPLE_HOVER};
     }}
 
     /* -- Section containers (QGroupBox) ------------------------------ */
@@ -182,6 +193,11 @@ def build_stylesheet() -> str:
         border-color: {PURPLE};
         color: white;
         font-weight: 600;
+    }}
+
+    QPushButton[class="toggle"]:checked:hover {{
+        background-color: {PURPLE_HOVER};
+        border-color: {PURPLE_HOVER};
     }}
 
     QPushButton[class="toggle"]:hover {{

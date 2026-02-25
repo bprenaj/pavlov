@@ -1,6 +1,6 @@
 """System-tray icon with context menu.
 
-Mapavlov minimises to the tray rather than the taskbar so it stays
+MapSense minimises to the tray rather than the taskbar so it stays
 out of the way during gameplay.
 """
 
@@ -20,7 +20,7 @@ class TrayIcon(QSystemTrayIcon):
 
     def __init__(self, icon: QIcon, parent: QWidget | None = None) -> None:
         super().__init__(icon, parent)
-        self.setToolTip("Mapavlov: Minimap Awareness Trainer")
+        self.setToolTip("MapSense: Minimap Awareness Trainer")
 
         menu = QMenu()
         menu.setStyleSheet(
@@ -28,7 +28,7 @@ class TrayIcon(QSystemTrayIcon):
             "QMenu::item:selected { background: #7B61FF; }"
         )
 
-        self._show_action = QAction("Show Mapavlov", self)
+        self._show_action = QAction("Show MapSense", self)
         self._show_action.triggered.connect(self.show_requested.emit)
         menu.addAction(self._show_action)
 

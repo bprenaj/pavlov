@@ -16,7 +16,7 @@ from settings import (
 @pytest.fixture
 def tmp_settings(monkeypatch, tmp_path):
     """Redirect settings I/O to a temporary directory."""
-    settings_dir = str(tmp_path / "Mapavlov")
+    settings_dir = str(tmp_path / "MapSense")
     monkeypatch.setattr("settings._settings_dir", lambda: settings_dir)
     monkeypatch.setattr(
         "settings._settings_path",

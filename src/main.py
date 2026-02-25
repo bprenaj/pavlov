@@ -1,4 +1,4 @@
-"""Mapavlov: Minimap Awareness Trainer.
+"""MapSense: Minimap Awareness Trainer.
 
 Entry point.  DPI awareness is set before any other imports to ensure
 correct coordinate handling on high-DPI displays.
@@ -18,6 +18,10 @@ if sys.platform == "win32":
         ctypes.windll.shcore.SetProcessDpiAwareness(2)
     except Exception:
         pass
+    try:
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("eyeware.mapsense.1")
+    except Exception:
+        pass
 
 import argparse
 import logging
@@ -34,29 +38,29 @@ def setup_logging(debug: bool = False) -> None:
 
     logging.basicConfig(level=level, format=fmt, datefmt=datefmt)
 
-    # File log in %APPDATA%/Mapavlov/
-    log_dir = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "Mapavlov")
+    # File log in %APPDATA%/MapSense/
+    log_dir = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "MapSense")
     os.makedirs(log_dir, exist_ok=True)
-    fh = logging.FileHandler(os.path.join(log_dir, "mapavlov.log"), encoding="utf-8")
+    fh = logging.FileHandler(os.path.join(log_dir, "mapsense.log"), encoding="utf-8")
     fh.setFormatter(logging.Formatter(fmt, datefmt=datefmt))
     fh.setLevel(logging.DEBUG)
     logging.getLogger().addHandler(fh)
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Mapavlov: Minimap Awareness Trainer")
+    parser = argparse.ArgumentParser(description="MapSense: Minimap Awareness Trainer")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging and UI overlay")
     args = parser.parse_args()
 
     setup_logging(debug=args.debug)
-    logger = logging.getLogger("mapavlov")
-    logger.info("Mapavlov starting (debug=%s)", args.debug)
+    logger = logging.getLogger("mapsense")
+    logger.info("MapSense starting (debug=%s)", args.debug)
 
-    from app import MapavlovApp
+    from app import MapSenseApp
 
-    app = MapavlovApp(debug=args.debug)
+    app = MapSenseApp(debug=args.debug)
     rc = app.run()
-    logger.info("Mapavlov exiting with code %d", rc)
+    logger.info("MapSense exiting with code %d", rc)
     return rc
 
 

@@ -1,4 +1,5 @@
 beam-eye-tracker>=2.0
 PySide6>=6.5
+matplotlib>=3.7
 pytest>=7.0
 PyInstaller>=5.0

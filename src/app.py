@@ -1,4 +1,4 @@
-"""Mapavlov application lifecycle.
+"""MapSense application lifecycle.
 
 Creates the QApplication, loads settings, initialises the tracker,
 applies the global stylesheet, and opens the main window.
@@ -19,13 +19,13 @@ from ui.styles import build_stylesheet
 logger = logging.getLogger(__name__)
 
 
-class MapavlovApp:
+class MapSenseApp:
     """Owns the Qt application and coordinates top-level objects."""
 
     def __init__(self, debug: bool = False) -> None:
         self._debug = debug
         self._qt_app = QApplication.instance() or QApplication(sys.argv)
-        self._qt_app.setApplicationName("Mapavlov")
+        self._qt_app.setApplicationName("MapSense")
         self._qt_app.setOrganizationName("Eyeware Tech SA")
         self._qt_app.setApplicationVersion("0.1.0")
 
@@ -53,9 +53,10 @@ class MapavlovApp:
             settings=self._settings,
             debug=self._debug,
         )
+        self._qt_app.setWindowIcon(self._window.windowIcon())
 
     def run(self) -> int:
         """Show the window and enter the Qt event loop."""
         self._window.show()
-        logger.info("Mapavlov ready")
+        logger.info("MapSense ready")
         return self._qt_app.exec()

@@ -1,7 +1,7 @@
 """User settings with JSON persistence.
 
-Settings are stored in %APPDATA%/Mapavlov/settings.json on Windows.
-Saved regions are stored in %APPDATA%/Mapavlov/regions.json separately.
+Settings are stored in %APPDATA%/MapSense/settings.json on Windows.
+Saved regions are stored in %APPDATA%/MapSense/regions.json separately.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ DEFAULT_GAZE_TOLERANCE = 10.0
 
 def _settings_dir() -> str:
     base = os.environ.get("APPDATA", os.path.expanduser("~"))
-    return os.path.join(base, "Mapavlov")
+    return os.path.join(base, "MapSense")
 
 
 def _settings_path() -> str:

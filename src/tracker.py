@@ -94,7 +94,7 @@ class BeamTracker:
             viewport = self._beam.ViewportGeometry()
             viewport.point_00 = self._beam.Point(0, 0)
             viewport.point_11 = self._beam.Point(screen_width, screen_height)
-            self._api = self._beam.API("Mapavlov", viewport)
+            self._api = self._beam.API("MapSense", viewport)
             logger.info("Beam API initialised (%dx%d)", screen_width, screen_height)
             return True
         except Exception:

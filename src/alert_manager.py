@@ -92,3 +92,15 @@ class AlertManager(QObject):
         self._volume = max(0.0, min(1.0, percent / 100.0))
         self._audio_output.setVolume(self._volume)
         logger.debug("Volume set to %d%%", percent)
+
+    def set_custom_sound(self, filepath: str) -> None:
+        """Replace the alert sound with a user-provided file, or revert to default."""
+        self._player.stop()
+        if filepath:
+            self._player.setSource(QUrl.fromLocalFile(filepath))
+            logger.info("Custom alert sound set: %s", filepath)
+        else:
+            default = generate_alert_wav()
+            self._player.setSource(QUrl.fromLocalFile(default))
+            logger.info("Reverted to default alert sound")
+        self._player.setLoops(QMediaPlayer.Loops.Infinite.value)

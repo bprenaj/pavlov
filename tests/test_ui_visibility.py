@@ -27,15 +27,15 @@ from ui.main_window import MainWindow
 
 @pytest.fixture
 def window(monkeypatch, tmp_path):
-    settings_dir = str(tmp_path / "Mapavlov")
+    settings_dir = str(tmp_path / "MapSense")
     monkeypatch.setattr("settings._settings_dir", lambda: settings_dir)
     monkeypatch.setattr(
         "settings._settings_path",
-        lambda: str(tmp_path / "Mapavlov" / "settings.json"),
+        lambda: str(tmp_path / "MapSense" / "settings.json"),
     )
     monkeypatch.setattr(
         "settings._regions_path",
-        lambda: str(tmp_path / "Mapavlov" / "regions.json"),
+        lambda: str(tmp_path / "MapSense" / "regions.json"),
     )
     settings = Settings()
     tracker = BeamTracker()
@@ -48,15 +48,15 @@ class TestTitleBar:
     def test_title_bar_exists(self, window):
         assert window._title_bar is not None
 
-    def test_title_text_is_mapavlov(self, window):
-        assert window._title_bar._title_label.text() == "Mapavlov"
+    def test_title_text_is_mapsense(self, window):
+        assert window._title_bar._title_label.text() == "MapSense"
 
     def test_title_bar_has_icon(self, window):
         pixmap = window._title_bar._icon_label.pixmap()
         assert pixmap is not None
 
-    def test_window_title_is_mapavlov(self, window):
-        assert window.windowTitle() == "Mapavlov"
+    def test_window_title_is_mapsense(self, window):
+        assert window.windowTitle() == "MapSense"
 
     def test_window_is_frameless(self, window):
         assert window.windowFlags() & Qt.WindowType.FramelessWindowHint
@@ -197,15 +197,15 @@ class TestDebugMode:
         assert not window._debug_label.isHidden()
 
     def test_debug_label_hidden_in_normal_mode(self, monkeypatch, tmp_path):
-        settings_dir = str(tmp_path / "Mapavlov2")
+        settings_dir = str(tmp_path / "MapSense2")
         monkeypatch.setattr("settings._settings_dir", lambda: settings_dir)
         monkeypatch.setattr(
             "settings._settings_path",
-            lambda: str(tmp_path / "Mapavlov2" / "settings.json"),
+            lambda: str(tmp_path / "MapSense2" / "settings.json"),
         )
         monkeypatch.setattr(
             "settings._regions_path",
-            lambda: str(tmp_path / "Mapavlov2" / "regions.json"),
+            lambda: str(tmp_path / "MapSense2" / "regions.json"),
         )
         settings = Settings()
         tracker = BeamTracker()
