@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' file: data:; script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net; media-src 'self' file:;">
+  <title>Pavlov</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="side-nav">
+      <div class="nav-brand">
+        <img src="assets/pavlov-main.jpg" alt="Pavlov" class="nav-avatar">
+      </div>
+      <button class="nav-item nav-active" data-page="coach" title="Coach">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        <span>Coach</span>
+      </button>
+      <button class="nav-item" data-page="history" title="History">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 4-6"/></svg>
+        <span>History</span>
+      </button>
+      <button class="nav-item" data-page="settings" title="Settings">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        <span>Settings</span>
+      </button>
+      <div class="nav-spacer"></div>
+      <a id="discordLink" class="nav-item nav-item--ghost" href="#" title="Beam Eye Tracker Discord community">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.79 19.79 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.74 19.74 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028 14.09 14.09 0 001.226-1.994.076.076 0 00-.041-.106 13.11 13.11 0 01-1.872-.892.077.077 0 01-.008-.128 10.2 10.2 0 00.372-.292.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.3 12.3 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.84 19.84 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.06.06 0 00-.031-.03z"/></svg>
+      </a>
+    </aside>
+
+    <section class="main-area">
+      <header id="titleBar" class="title-bar drag-region">
+        <div class="title-left drag-region">
+          <h1 class="title-name">Pavlov</h1>
+          <span class="title-sub">Map awareness coach</span>
+        </div>
+        <div class="title-status no-drag">
+          <span id="beamStatusDot" class="beam-dot beam-dot--off"></span>
+          <span id="beamStatusLabel" class="beam-label">Not Connected</span>
+          <span id="modeLabel" class="mode-badge">Free Mode</span>
+        </div>
+        <div class="window-controls no-drag">
+          <button id="btnMinimize" class="win-btn" title="Minimize">&#x2013;</button>
+          <button id="btnClose" class="win-btn win-btn--close" title="Close">&#x2715;</button>
+        </div>
+      </header>
+
+      <main id="content" class="content">
+
+        <!-- ═══════ COACH PAGE ═══════ -->
+        <section id="pageCoach" class="page page--active">
+          <div id="regionGate" class="region-gate">
+            <img src="assets/pavlov-main.jpg" alt="Pavlov" class="gate-img">
+            <h2>Welcome to Pavlov</h2>
+            <p>Select your minimap region to begin training.<br>Pavlov will condition your map awareness like a reflex.</p>
+            <button id="btnSelectRegionGate" class="btn btn--accent btn--lg">Mark Your Minimap</button>
+          </div>
+
+          <div id="coachContent" class="coach-content" style="display:none;">
+            <div class="mas-card" title="Your overall minimap awareness rating from 0 to 100.&#10;&#10;Score 80+ = excellent. Score 50-80 = good. Below 50 = keep practicing.&#10;&#10;MAS is a weighted blend of check rate (40%), response time (25%), processing speed (20%), and consistency (15%).">
+              <div class="mas-score-wrap">
+                <span id="masValue" class="mas-value">0</span>
+                <span class="mas-label">MAS</span>
+              </div>
+              <div class="mas-info">
+                <p class="mas-sublabel">Map Awareness Score</p>
+                <div class="mas-bar"><div id="masBarFill" class="mas-bar__fill"></div></div>
+              </div>
+            </div>
+
+            <div class="training-row">
+              <button id="btnStartTraining" class="btn btn--accent btn--lg">Start Training</button>
+              <button id="btnStopTraining" class="btn btn--danger btn--lg" style="display:none;">Stop Training</button>
+              <button id="btnManualGlance" class="btn btn--outline" style="display:none;" title="Tell Pavlov you just checked the map.&#10;In Free mode, this replaces eye tracking.">I Checked the Map</button>
+              <div id="timerDisplay" class="timer" style="display:none;">
+                <span id="timerValue">0.0</span>s since last glance
+              </div>
+              <span id="trackingHint" class="tracking-hint"></span>
+            </div>
+
+            <div id="metricsGrid" class="metrics-grid">
+              <div class="mc" title="How many times per minute you check the minimap.&#10;This is the single strongest predictor of map awareness.&#10;Pro players average 6-8 glances per minute."><span class="mc-label">Check Rate</span><span id="metricRate" class="metric-value">0.0</span><span class="mc-unit">/min</span></div>
+              <div class="mc" title="Average number of seconds between consecutive map glances.&#10;Lower is better. If this exceeds your timeout, you trigger alerts."><span class="mc-label">Avg Response</span><span id="metricAvgGap" class="metric-value">0.0</span><span class="mc-unit">s</span></div>
+              <div class="mc" title="Percentage of the session your eyes spent on the minimap.&#10;Healthy range is 8-15%. Too low = ignoring. Too high = staring."><span class="mc-label">Map Attention</span><span id="metricMapTime" class="metric-value">0.0</span><span class="mc-unit">%</span></div>
+              <div class="mc" title="Average duration of each minimap glance in milliseconds.&#10;Shorter glances = faster info extraction.&#10;Pro players extract map info in very brief glances."><span class="mc-label">Glance Speed</span><span id="metricProcSpeed" class="metric-value">0</span><span class="mc-unit">ms</span></div>
+              <div class="mc" title="Total time elapsed since you pressed Start Training."><span class="mc-label">Duration</span><span id="metricDuration" class="metric-value">0</span><span class="mc-unit">s</span></div>
+              <div class="mc" title="Total number of times your eyes entered the minimap region.&#10;Each gaze entry counts as one glance."><span class="mc-label">Glances</span><span id="metricGlances" class="metric-value">0</span><span class="mc-unit"></span></div>
+              <div class="mc" title="The single longest period you went without checking the map.&#10;This is your worst tunnel vision moment. Keep this low."><span class="mc-label">Longest Blind</span><span id="metricLongestGap" class="metric-value">0.0</span><span class="mc-unit">s</span></div>
+              <div class="mc" title="Number of times the alert fired because you exceeded the timeout.&#10;Fewer alerts = better awareness."><span class="mc-label">Tunnel Alerts</span><span id="metricAlerts" class="metric-value">0</span><span class="mc-unit"></span></div>
+              <div class="mc" title="The longest period where you checked the map frequently enough&#10;that the alert never fired. Longer = more consistent."><span class="mc-label">Best Streak</span><span id="metricAlertFree" class="metric-value">0.0</span><span class="mc-unit">s</span></div>
+            </div>
+
+            <div class="info-bar">
+              <span id="regionLabel">No region</span>
+              <button id="btnChangeRegion" class="btn btn--ghost btn--sm">Change Region</button>
+            </div>
+          </div>
+
+          <div id="adBanner" class="ad-banner">
+            <div class="ad-unit">
+              <span class="ad-tag">AD</span>
+              <span class="ad-placeholder-text">Overwolf Ad Unit</span>
+            </div>
+            <div class="ad-cta">
+              <span class="ad-cta-text">Remove ads and unlock gaze tracking</span>
+              <button id="btnUpgradePro" class="btn btn--accent btn--sm">Go Pro</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═══════ HISTORY PAGE ═══════ -->
+        <section id="pageHistory" class="page">
+          <h2 class="page-title">Session History</h2>
+          <div id="historyEmpty" class="empty-state"><p>No sessions yet. Complete a training session to see your progress here.</p></div>
+          <div class="chart-wrap" style="display:none;" id="chartWrap">
+            <canvas id="historyChart" class="history-chart"></canvas>
+          </div>
+          <div id="historyList" class="history-list"></div>
+          <div class="row-actions">
+            <button id="btnClearHistory" class="btn btn--ghost btn--sm">Clear History</button>
+            <button id="btnShareReddit" class="btn btn--ghost btn--sm">Share on Reddit</button>
+          </div>
+        </section>
+
+        <!-- ═══════ SETTINGS PAGE ═══════ -->
+        <section id="pageSettings" class="page">
+          <h2 class="page-title">Settings</h2>
+          <div class="settings-scroll">
+
+            <!-- Training Mode -->
+            <div class="s-card">
+              <h3 class="s-card__title" title="Free mode uses a timer to remind you. Pro mode uses Beam Eye Tracker for real gaze tracking and detailed stats.">Training Mode</h3>
+              <p class="s-card__hint">Free uses a timer. Pro uses Beam Eye Tracker for real gaze data.</p>
+              <select id="settingMode" class="sel" title="Free mode uses a timer to remind you. Pro mode uses Beam Eye Tracker for real gaze tracking and detailed stats.">
+                <option value="free">Free (Timer)</option>
+                <option value="paid">Pro (Beam Eye Tracker)</option>
+              </select>
+            </div>
+
+            <!-- Training Intensity -->
+            <div class="s-card">
+              <h3 class="s-card__title" title="How many seconds before the bell rings.&#10;Lower = stricter training. Set to 1 if you hate yourself.">Training Intensity</h3>
+              <p class="s-card__hint">Seconds before Pavlov rings the bell.</p>
+              <div class="slider-row">
+                <input id="settingTimeout" type="range" min="0.5" max="300" step="0.5" value="5" class="slider" title="How many seconds before the bell rings. Lower = stricter training. Set to 0.5 if you hate yourself.">
+                <span id="settingTimeoutValue" class="slider-val">5s</span>
+              </div>
+              <h4 class="s-card__sub" title="Adds a forgiving border around your minimap region.&#10;Higher = we count it even if your aim is as bad as your map awareness.">Detection Zone</h4>
+              <p class="s-card__hint">Extra forgiveness around your minimap.</p>
+              <div class="slider-row">
+                <input id="settingTolerance" type="range" min="0" max="200" value="10" class="slider" title="Adds a forgiving border around your minimap region. Higher = we count it even if your aim is as bad as your map awareness.">
+                <span id="settingToleranceValue" class="slider-val">10px</span>
+              </div>
+            </div>
+
+            <!-- Conditioning Method -->
+            <div class="s-card">
+              <h3 class="s-card__title" title="Pick your conditioning method. Pavlov approves all of them.&#10;Combine Audio, Visual, and IRL for maximum stimulus.&#10;Or pick Silent if you just want to observe your bad habits.">Conditioning Method</h3>
+              <p class="s-card__hint">Pick how Pavlov reminds you. Combine for maximum stimulus.</p>
+              <div class="toggle-row" id="alertToggles">
+                <button class="toggle-pill" data-mode="silent" title="No bell, no flash, no shock collar.&#10;Pavlov watches silently and takes notes.&#10;Like a disappointed scientist.">Silent</button>
+                <button class="toggle-pill active" data-mode="audio" title="Ding ding ding. Forgot the minimap again?&#10;This alarm won't stop until you look.&#10;Good boy. Now check the map.">Audio</button>
+                <button class="toggle-pill" data-mode="visual" title="Flashes your minimap when you tunnel vision.&#10;Consider it a gentle nudge from Pavlov himself.&#10;Look at the map and it stops judging you.">Visual</button>
+                <button class="toggle-pill" data-mode="irl" title="Wire up a real buzzer, LED strip, or whatever cursed&#10;contraption you can dream up. Pavlov sends webhooks,&#10;your hardware does the rest. Pavlov would be proud.">IRL</button>
+              </div>
+              <div class="sub-links">
+                <button id="btnPickSound" class="btn-link" title="Upload your own alert sound. Rick roll yourself&#10;every time you forget the map. We don't judge.&#10;MP3, WAV, OGG, FLAC.">Custom Bell</button>
+                <span id="customSoundLabel" class="hint">Default</span>
+              </div>
+              <h4 class="s-card__sub" title="How loud the bell rings.&#10;Set to 0 if your neighbours already think you're training a dog.">Bell Volume</h4>
+              <div class="slider-row">
+                <input id="settingVolume" type="range" min="0" max="100" value="50" class="slider" title="How loud the bell rings. Set to 0 if your neighbours already think you're training a dog.">
+                <span id="settingVolumeValue" class="slider-val">50%</span>
+              </div>
+            </div>
+
+            <!-- Game Profile -->
+            <div class="s-card">
+              <h3 class="s-card__title" title="Pre-configured minimap positions for popular games.&#10;Or pick Custom to draw your own region.">Game Profile</h3>
+              <p class="s-card__hint">Pick a game or draw a custom region.</p>
+              <select id="settingPreset" class="sel" title="Pre-configured minimap positions for popular games. Or pick Custom to draw your own region.">
+                <option value="">Select a game...</option>
+                <option value="lol">League of Legends</option>
+                <option value="dota2">Dota 2</option>
+                <option value="sc2">StarCraft II</option>
+                <option value="valorant">Valorant</option>
+                <option value="cs2">Counter-Strike 2</option>
+                <option value="overwatch">Overwatch 2</option>
+                <option value="smite">Smite</option>
+                <option value="custom">Custom</option>
+              </select>
+              <button id="btnSelectRegion" class="btn btn--accent btn--sm" style="margin-top:10px;" title="Opens a full-screen overlay.&#10;Click and drag to mark the region, then press Enter.&#10;Show us where you refuse to look.">Mark Your Minimap</button>
+              <div id="savedRegionsSection" style="display:none; margin-top:12px;">
+                <h4 class="s-card__sub" title="Regions you've saved for quick switching between games.">Saved Regions</h4>
+                <div class="inline-row">
+                  <select id="settingSavedRegion" class="sel" title="Select a saved screen region, or choose New region to create one."></select>
+                  <button id="btnDeleteRegion" class="btn btn--ghost btn--sm" title="Remove this saved region">Delete</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- IRL Hardware -->
+            <div class="s-card">
+              <h3 class="s-card__title" title="Wire up a real buzzer, LED strip, or whatever cursed contraption you can dream up. Pavlov sends webhooks, your hardware does the rest.">IRL Hardware</h3>
+              <p class="s-card__hint">Connect a physical buzzer, LED, or flag via webhook.</p>
+              <label class="chk" title="Enable the local webhook server for physical alert devices."><input type="checkbox" id="settingIrlEnabled"> Enabled</label>
+              <div class="inline-row" style="margin-top:8px;">
+                <input id="settingIrlPort" type="number" value="9876" min="1024" max="65535" class="inp inp--sm" placeholder="Port" title="Local HTTP server port. GET /status for polling. Pavlov POSTs alert events to your webhook URL.">
+                <input id="settingIrlUrl" type="text" placeholder="http://192.168.1.x:8080/alert" class="inp" title="URL that receives POST with JSON body {\"event\": \"alert_start\"} or {\"event\": \"alert_stop\"} when you forget the map.">
+              </div>
+              <div class="sub-links" style="margin-top:8px;">
+                <button id="btnAskAI" class="btn-link" title="Opens ChatGPT with a build guide for a physical alert gadget. Desk buzzer? LED tower? Flag that pops up? Go wild.">Ask an AI</button>
+              </div>
+            </div>
+
+            <!-- Quick Toggle -->
+            <div class="s-card">
+              <h3 class="s-card__title" title="Start or stop training without switching to Pavlov.&#10;Useful when you're in-game and want to pause.">Quick Toggle</h3>
+              <p class="s-card__hint">Global hotkey to start/stop training from anywhere.</p>
+              <input id="settingHotkey" type="text" placeholder="Click here, then press key combo" class="inp inp--sm" readonly title="Records a key combination. Press Ctrl/Shift/Alt + a key. Works even when Pavlov is in the background.">
+            </div>
+
+            <!-- Privacy & Ads -->
+            <div class="s-card">
+              <h3 class="s-card__title" title="Pavlov is free thanks to ad support. Go Pro for ad-free coaching with Beam Eye Tracker.">Privacy &amp; Ads</h3>
+              <p class="s-card__hint">Pavlov is free thanks to ad support. Go Pro for ad-free coaching with Beam Eye Tracker.</p>
+              <button id="btnCmpSettings" class="btn btn--ghost btn--sm" title="Manage your ad and data consent preferences">Privacy Settings</button>
+            </div>
+
+          </div>
+        </section>
+      </main>
+    </section>
+  </div>
+
+  <!-- Onboarding -->
+  <div id="onboardingModal" class="modal" style="display:none;">
+    <div class="modal-bg"></div>
+    <div class="modal-box">
+      <div id="onboardingStep1" class="onboarding-step">
+        <img src="assets/pavlov-main.jpg" alt="Pavlov" class="ob-img">
+        <h2>Meet Pavlov</h2>
+        <p>Your personal map awareness coach. Pavlov trains you to check the minimap regularly&mdash;like a reflex.</p>
+        <button class="btn btn--accent" data-onboarding-next="2">Get Started</button>
+      </div>
+      <div id="onboardingStep2" class="onboarding-step" style="display:none;">
+        <h2>Mark Your Minimap</h2>
+        <p>Select where the minimap sits on your screen. Draw a rectangle, then press Enter to confirm.</p>
+        <button class="btn btn--accent" data-onboarding-next="3">Next</button>
+      </div>
+      <div id="onboardingStep3" class="onboarding-step" style="display:none;">
+        <h2>Choose Your Mode</h2>
+        <p><strong>Free:</strong> Timer-based alerts remind you to check the map.<br><strong>Pro:</strong> Beam Eye Tracker provides real gaze tracking and detailed stats.</p>
+        <button class="btn btn--accent" id="btnFinishOnboarding">Let's Go</button>
+      </div>
+    </div>
+  </div>
+
+  <audio id="alertAudioEl" preload="auto"></audio>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

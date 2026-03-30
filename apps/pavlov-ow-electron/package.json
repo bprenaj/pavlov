@@ -1,0 +1,90 @@
+{
+  "name": "pavlov-ow-electron",
+  "productName": "Pavlov",
+  "version": "0.2.0",
+  "description": "Pavlov is a minimap awareness coach for competitive gamers.",
+  "main": "dist/main/index.js",
+  "type": "commonjs",
+  "author": "SwissTropic",
+  "license": "ISC",
+  "scripts": {
+    "clean": "rimraf dist coverage",
+    "build": "npm run clean && tsc -p tsconfig.json && node scripts/copy-static.mjs",
+    "dev": "npm run build && electron .",
+    "start": "npm run build && electron .",
+    "start:ow-electron": "npm run build && ow-electron .",
+    "build:ow-electron": "npm run build && ow-electron-builder --publish=never",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "test": "vitest run --coverage",
+    "test:unit": "vitest run tests/unit --coverage.enabled=false",
+    "test:integration": "vitest run tests/integration --coverage.enabled=false",
+    "test:ui": "vitest run tests/ui --environment jsdom --coverage.enabled=false",
+    "test:e2e": "vitest run tests/e2e --coverage.enabled=false"
+  },
+  "keywords": [
+    "ow-electron",
+    "overwolf",
+    "beam",
+    "eye-tracking",
+    "gaming",
+    "coaching"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@overwolf/electron-is-overwolf": "^0.0.2",
+    "@overwolf/ow-electron": "^39.6.0",
+    "chart.js": "^4.5.1",
+    "electron": "^41.0.3",
+    "electron-store": "^11.0.2",
+    "koffi": "^2.15.2",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@overwolf/ow-electron-builder": "^26.0.12",
+    "@testing-library/dom": "^10.4.1",
+    "@types/node": "^25.5.0",
+    "@typescript-eslint/eslint-plugin": "^8.57.1",
+    "@typescript-eslint/parser": "^8.57.1",
+    "@vitest/coverage-v8": "^4.1.0",
+    "eslint": "^10.0.3",
+    "jsdom": "^29.0.0",
+    "prettier": "^3.8.1",
+    "rimraf": "^6.1.3",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  },
+  "build": {
+    "appId": "com.swisstropic.pavlov",
+    "productName": "Pavlov",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json",
+      "!**/*.map"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Pavlov"
+    }
+  }
+}

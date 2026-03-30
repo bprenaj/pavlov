@@ -218,23 +218,34 @@ class _TitleBar(QWidget):
         layout.setContentsMargins(24, 0, 8, 0)
         layout.setSpacing(0)
 
+        # Left group: icon + title (fixed width container for symmetric centering)
+        left_w = QWidget()
+        left_w.setStyleSheet("background: transparent;")
+        left_lay = QHBoxLayout(left_w)
+        left_lay.setContentsMargins(0, 0, 0, 0)
+        left_lay.setSpacing(0)
+
         self._icon_label = QLabel()
         favicon = MainWindow._favicon_pixmap(56)
         if not favicon.isNull():
             self._icon_label.setPixmap(favicon)
         self._icon_label.setFixedSize(60, 60)
         self._icon_label.setStyleSheet("background: transparent;")
-        layout.addWidget(self._icon_label)
-        layout.addSpacing(12)
+        left_lay.addWidget(self._icon_label)
+        left_lay.addSpacing(12)
 
         self._title_label = QLabel("MapSense")
         self._title_label.setStyleSheet(
             f"font-size: 28px; font-weight: 700; color: {TEXT_PRIMARY};"
         )
-        layout.addWidget(self._title_label)
+        left_lay.addWidget(self._title_label)
+        left_lay.addStretch()
+        left_w.setFixedWidth(200)
+        layout.addWidget(left_w)
+
         layout.addStretch()
 
-        # Beam status indicator (centered between logo and window controls)
+        # Center group: Beam status indicator
         self._status_dot = QLabel("\u25CF")
         self._status_dot.setFixedWidth(22)
         self._status_dot.setStyleSheet(f"font-size: 18px; color: {TEXT_TERTIARY};")
@@ -257,6 +268,14 @@ class _TitleBar(QWidget):
 
         layout.addStretch()
 
+        # Right group: window controls (fixed width container matching left for symmetry)
+        right_w = QWidget()
+        right_w.setStyleSheet("background: transparent;")
+        right_lay = QHBoxLayout(right_w)
+        right_lay.setContentsMargins(0, 0, 0, 0)
+        right_lay.setSpacing(0)
+        right_lay.addStretch()
+
         btn_css = (
             "QPushButton {{ background: transparent; border: none; "
             f"color: {TEXT_TERTIARY}; font-size: 15px; "
@@ -271,7 +290,9 @@ class _TitleBar(QWidget):
             btn = QPushButton(symbol)
             btn.setStyleSheet(btn_css.format(hover=hover, bg=bg))
             btn.clicked.connect(slot)
-            layout.addWidget(btn)
+            right_lay.addWidget(btn)
+        right_w.setFixedWidth(200)
+        layout.addWidget(right_w)
 
     def set_beam_status(self, status) -> None:
         from tracker import BeamStatus

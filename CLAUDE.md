@@ -1,4 +1,32 @@
-# MapSense - Project Instructions
+# Pavlov / MapSense - Project Instructions
+
+> **Migration status (March 2026):** The active implementation target is the ow-electron app in [`apps/pavlov-ow-electron-opus`](apps/pavlov-ow-electron-opus). The earlier incomplete attempt is in [`apps/pavlov-ow-electron`](apps/pavlov-ow-electron). The Python/PySide app in [`src`](src) remains a legacy reference during cutover.
+
+## Current Project State (Read First)
+
+- **Active stack:** Electron + ow-electron + TypeScript
+- **Legacy stack:** Python + PySide6
+- **Primary product name:** Pavlov
+- **Free mode requirement:** timer-based cues must stay fully functional without Beam
+- **Paid mode requirement:** Beam gaze-driven coaching is gated by subscription entitlement
+- **Monetization direction:** Overwolf-first (`owadview`, CMP flow, Overwolf distribution path)
+
+### UX and Terminology Guardrails
+
+- App name in user-facing UI is **Pavlov** (not "Pavlov's Bell").
+- Say **Beam Eye Tracker** in UI text for clarity.
+- Keep wording close to legacy intent; avoid novelty renaming of familiar controls.
+- Keep first-run onboarding and region-first guidance flow.
+- Region selection should be click-drag overlay based, not manual XYWH fields.
+- Keep full session metrics surface (MAS + 9 metrics), not a reduced subset.
+- Label CMP in UI as ads/privacy consent so non-technical users understand it.
+
+### Active Documentation
+
+- Agent operating guide: [`AGENTS.md`](AGENTS.md)
+- Electron migration notes: [`docs/electron-migration.md`](docs/electron-migration.md)
+- Overwolf monetization notes: [`docs/monetization-overwolf.md`](docs/monetization-overwolf.md)
+- Testing strategy: [`docs/testing-strategy.md`](docs/testing-strategy.md)
 
 ## What Is MapSense
 
@@ -94,13 +122,22 @@ MapSense computes a composite **Map Awareness Score (0-100)** inspired by Mobaly
 
 ## Tech Stack
 
-### Decision: Python + PySide6
+### Decision: Python + PySide6 (Legacy Context)
 
 Stick with Python/PySide6 (same as the prototype). Rationale:
 - Beam Eye Tracker SDK is Python-native (`beam-eye-tracker` pip package)
 - Faster to ship than rewriting in Electron/Tauri
 - PySide6 is sufficient for the UI complexity needed
 - PyInstaller for packaging to .exe
+
+### Current Direction: ow-electron + TypeScript
+
+The active implementation has moved to Electron/ow-electron to align with Overwolf distribution and freemium strategy.
+
+- Main app code now lives in `apps/pavlov-ow-electron`
+- Beam integration uses a native `koffi` bridge to `beam_eye_tracker_client.dll`
+- Renderer uses secure preload IPC (`contextIsolation: true`, no renderer Node globals)
+- Packaging target is `ow-electron-builder`
 
 ### Dependencies
 
@@ -300,16 +337,21 @@ The IRL webhook enables physical alert devices. When enabled, MapSense:
 
 Makers can build listeners on Raspberry Pi, Arduino, ESP32, etc. that trigger servos, LEDs, buzzers, or flags when the player forgets the minimap.
 
-## Brand Colours
+## Brand Colours (Opus Redesign)
 
 | Role                        | Hex       |
 |-----------------------------|-----------|
-| Purple (accent)             | `#7B61FF` |
-| Background gradient top     | `#15171D` |
-| Background gradient bottom  | `#0E0824` |
-| Card / row background       | `#23262E` |
-| Inactive element            | `#505050` |
-| Error / warning             | `#FFFF00` |
+| Accent (cyan)               | `#00D4FF` |
+| Background top              | `#0B1120` |
+| Background bottom           | `#101828` |
+| Card / surface              | `#1A2332` |
+| Border                      | `#243044` |
+| Gold (MAS/premium)          | `#C8A246` |
+| Text primary                | `#E8ECF2` |
+| Text secondary              | `#8899AA` |
+| Success                     | `#00E5A0` |
+| Warning                     | `#FFB74D` |
+| Error                       | `#FF5252` |
 
 ## UI/UX Guidelines
 
@@ -330,26 +372,35 @@ Makers can build listeners on Raspberry Pi, Arduino, ESP32, etc. that trigger se
 - [Steamworks Documentation](https://partner.steamgames.com/doc/home)
 - [PySide6 Docs](https://doc.qt.io/qtforpython-6/)
 - [Mobalytics Eye Tracking (reference)](https://medium.com/@lauren.hayes/dont-go-blindly-into-summoner-s-rift-fe533864e557)
+- [Overwolf SDK Introduction](https://dev.overwolf.com/ow-native/reference/ow-sdk-introduction/)
+- [Overwolf Electron Technical Overview](https://dev.overwolf.com/ow-electron/getting-started/onboarding-resources/ow-electron-technical-overview/)
+- [@overwolf/ow-electron npm package](https://www.npmjs.com/package/@overwolf/ow-electron)
 
 ## Testing
 
-Run all tests:
+Legacy Python tests:
 ```bash
 python -m pytest tests/ -v
 ```
 
-### Test structure
+Electron app (active - opus):
+```bash
+cd apps/pavlov-ow-electron-opus
+npm run typecheck
+npm run lint
+npm test
+```
 
-| File | What it covers |
-|------|----------------|
-| `test_alert_manager.py` | Trigger, stop, cooldown, silent mode, volume, custom sound |
-| `test_game_presets.py` | Preset keys, ratios, corner labels |
-| `test_minimap_detector.py` | Region contains, tolerance expansion, dict roundtrip |
-| `test_settings.py` | Defaults, save/load, corrupt file handling, RegionStore CRUD |
-| `test_tracker.py` | GazeData confidence, mocked SDK status/gaze/auto-start |
-| `test_ui_visibility.py` | Every UI element is present, labelled, and in correct state |
+### Test structure (99 tests, 11 files)
 
-When adding new UI elements, add corresponding tests to `test_ui_visibility.py`.
+| Suite | Files | Tests | Coverage |
+|-------|-------|-------|----------|
+| `tests/unit/` | 7 | 55 | MAS, region, presets, schemas, entitlement, alertManager, IPC |
+| `tests/integration/` | 2 | 19 | Session engine free + paid modes |
+| `tests/ui/` | 1 | 15 | Renderer DOM structure (all elements, metrics, onboarding) |
+| `tests/e2e/` | 1 | 6 | Smoke checks (files, scripts, HTML references) |
+
+When adding new UI elements, add corresponding tests to `tests/ui/rendererLayout.test.ts`.
 
 ## Development Workflow
 

@@ -1,0 +1,70 @@
+{
+  "name": "pavlov",
+  "productName": "Pavlov",
+  "version": "1.0.0",
+  "description": "Map awareness coach for competitive gamers",
+  "main": "dist/main/index.js",
+  "scripts": {
+    "build": "npm run clean && tsc -p tsconfig.json && node scripts/copy-static.mjs",
+    "clean": "rimraf dist",
+    "dev": "npm run build && electron .",
+    "start": "npm run build && electron .",
+    "start:ow-electron": "npm run build && ow-electron .",
+    "build:ow-electron": "npm run build && ow-electron-builder",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src/ tests/",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:ui": "vitest run tests/ui",
+    "test:e2e": "vitest run tests/e2e",
+    "test:watch": "vitest watch",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "electron-store": "^8.2.0",
+    "koffi": "^2.9.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@overwolf/ow-electron": "39.6.0",
+    "@overwolf/ow-electron-builder": "26.0.12",
+    "@testing-library/dom": "^10.0.0",
+    "@types/node": "^22.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "@vitest/coverage-v8": "^3.0.0",
+    "chart.js": "^4.4.0",
+    "electron": "^34.0.0",
+    "eslint": "^9.0.0",
+    "jsdom": "^25.0.0",
+    "prettier": "^3.4.0",
+    "rimraf": "^6.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "build": {
+    "appId": "com.swisstropic.pavlov",
+    "productName": "Pavlov",
+    "icon": "build/icon.ico",
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Pavlov"
+    },
+    "files": ["dist/**/*", "package.json"],
+    "extraFiles": [
+      {
+        "from": "../../beam_eye_tracker_client.dll",
+        "to": "beam_eye_tracker_client.dll"
+      }
+    ]
+  }
+}

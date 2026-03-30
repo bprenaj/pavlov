@@ -10,6 +10,7 @@ Output lands in dist/MapSense/ as a one-folder bundle.
 import os
 import sys
 from pathlib import Path
+from PyInstaller.utils.hooks import collect_all
 
 ROOT = Path(SPECPATH).parent
 SRC = ROOT / "src"
@@ -19,17 +20,19 @@ ICON_ICO = ROOT / "installer" / "mapsense.ico"
 
 block_cipher = None
 
-# Collect all source modules (everything under src/)
+# Collect every matplotlib sub-module, data file, and binary
+mpl_datas, mpl_binaries, mpl_hiddenimports = collect_all("matplotlib")
+
 a = Analysis(
     [str(SRC / "main.py")],
     pathex=[str(SRC)],
-    binaries=[],
+    binaries=mpl_binaries,
     datas=[
         (str(ASSETS / "alert.wav"), "assets"),
         (str(ASSETS / "Lato-Regular.ttf"), "assets"),
         (str(ASSETS / "Lato-Bold.ttf"), "assets"),
         (str(IMAGES / "Mapavlov Favicon.svg"), "images"),
-    ],
+    ] + mpl_datas,
     hiddenimports=[
         "app",
         "tracker",
@@ -53,13 +56,21 @@ a = Analysis(
         "matplotlib",
         "matplotlib.backends.backend_qtagg",
         "matplotlib.backends.backend_agg",
-    ],
+        "matplotlib.backends.backend_qt",
+        "unittest",
+        "unittest.mock",
+        "pyparsing",
+        "pyparsing.testing",
+    ] + mpl_hiddenimports,
     hookspath=[],
-    hooksconfig={},
+    hooksconfig={
+        "matplotlib": {
+            "backends": ["Agg", "qtagg"],
+        },
+    },
     runtime_hooks=[],
     excludes=[
         "tkinter",
-        "unittest",
         "pydoc",
     ],
     win_no_prefer_redirects=False,

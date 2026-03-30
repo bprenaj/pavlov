@@ -1,0 +1,151 @@
+import { describe, it, expect, beforeAll } from 'vitest';
+import { JSDOM } from 'jsdom';
+import * as fs from 'fs';
+import * as path from 'path';
+
+let document: Document;
+
+beforeAll(() => {
+  const htmlPath = path.join(__dirname, '..', '..', 'src', 'renderer', 'index.html');
+  const html = fs.readFileSync(htmlPath, 'utf-8');
+  const dom = new JSDOM(html);
+  document = dom.window.document;
+});
+
+describe('Renderer Layout', () => {
+  it('has a title bar', () => {
+    expect(document.getElementById('titleBar')).not.toBeNull();
+  });
+
+  it('has minimize and close buttons', () => {
+    expect(document.getElementById('btnMinimize')).not.toBeNull();
+    expect(document.getElementById('btnClose')).not.toBeNull();
+  });
+
+  it('has beam status indicators', () => {
+    expect(document.getElementById('beamStatusDot')).not.toBeNull();
+    expect(document.getElementById('beamStatusLabel')).not.toBeNull();
+  });
+
+  it('has sidebar with three navigation buttons', () => {
+    const navs = document.querySelectorAll('.nav-item[data-page]');
+    expect(navs.length).toBe(3);
+    const pages = Array.from(navs).map((l) => (l as HTMLElement).dataset.page);
+    expect(pages).toContain('coach');
+    expect(pages).toContain('history');
+    expect(pages).toContain('settings');
+  });
+
+  it('has Pavlov avatar in sidebar', () => {
+    const img = document.querySelector('.nav-avatar') as HTMLImageElement;
+    expect(img).not.toBeNull();
+    expect(img.alt).toBe('Pavlov');
+  });
+
+  it('has three page sections', () => {
+    expect(document.getElementById('pageCoach')).not.toBeNull();
+    expect(document.getElementById('pageHistory')).not.toBeNull();
+    expect(document.getElementById('pageSettings')).not.toBeNull();
+  });
+
+  it('coach page has region gate and coach content', () => {
+    expect(document.getElementById('regionGate')).not.toBeNull();
+    expect(document.getElementById('coachContent')).not.toBeNull();
+  });
+
+  it('coach page has MAS display', () => {
+    expect(document.getElementById('masValue')).not.toBeNull();
+    expect(document.getElementById('masBarFill')).not.toBeNull();
+  });
+
+  it('coach page has training buttons', () => {
+    expect(document.getElementById('btnStartTraining')).not.toBeNull();
+    expect(document.getElementById('btnStopTraining')).not.toBeNull();
+    expect(document.getElementById('btnManualGlance')).not.toBeNull();
+  });
+
+  it('has 9 metric cells', () => {
+    const cells = document.querySelectorAll('.mc');
+    expect(cells.length).toBe(9);
+  });
+
+  it('all metric cells have tooltips', () => {
+    const cells = document.querySelectorAll('.mc');
+    cells.forEach((cell) => {
+      expect((cell as HTMLElement).title.length).toBeGreaterThan(0);
+    });
+  });
+
+  it('history page has chart canvas and list', () => {
+    expect(document.getElementById('historyChart')).not.toBeNull();
+    expect(document.getElementById('historyList')).not.toBeNull();
+    expect(document.getElementById('btnClearHistory')).not.toBeNull();
+    expect(document.getElementById('btnShareReddit')).not.toBeNull();
+  });
+
+  it('settings page has card-based layout', () => {
+    const cards = document.querySelectorAll('#pageSettings .s-card');
+    expect(cards.length).toBe(7);
+  });
+
+  it('settings page has all controls', () => {
+    expect(document.getElementById('settingMode')).not.toBeNull();
+    expect(document.getElementById('settingTimeout')).not.toBeNull();
+    expect(document.getElementById('settingTolerance')).not.toBeNull();
+    expect(document.getElementById('settingVolume')).not.toBeNull();
+    expect(document.getElementById('btnPickSound')).not.toBeNull();
+    expect(document.getElementById('settingPreset')).not.toBeNull();
+    expect(document.getElementById('btnSelectRegion')).not.toBeNull();
+    expect(document.getElementById('settingIrlEnabled')).not.toBeNull();
+    expect(document.getElementById('settingIrlPort')).not.toBeNull();
+    expect(document.getElementById('settingIrlUrl')).not.toBeNull();
+    expect(document.getElementById('settingHotkey')).not.toBeNull();
+    expect(document.getElementById('btnCmpSettings')).not.toBeNull();
+  });
+
+  it('has toggle pill buttons for alert modes', () => {
+    const pills = document.querySelectorAll('.toggle-pill');
+    expect(pills.length).toBe(4);
+    const modes = Array.from(pills).map((p) => (p as HTMLElement).dataset.mode);
+    expect(modes).toContain('silent');
+    expect(modes).toContain('audio');
+    expect(modes).toContain('visual');
+    expect(modes).toContain('irl');
+  });
+
+  it('toggle pills have tooltips', () => {
+    document.querySelectorAll('.toggle-pill').forEach((pill) => {
+      expect((pill as HTMLElement).title.length).toBeGreaterThan(0);
+    });
+  });
+
+  it('has onboarding modal with 3 steps', () => {
+    expect(document.getElementById('onboardingModal')).not.toBeNull();
+    expect(document.getElementById('onboardingStep1')).not.toBeNull();
+    expect(document.getElementById('onboardingStep2')).not.toBeNull();
+    expect(document.getElementById('onboardingStep3')).not.toBeNull();
+  });
+
+  it('onboarding steps use correct class for JS toggling', () => {
+    const steps = document.querySelectorAll('.onboarding-step');
+    expect(steps.length).toBe(3);
+  });
+
+  it('has audio element for alerts', () => {
+    expect(document.getElementById('alertAudioEl')).not.toBeNull();
+  });
+
+  it('has Discord link', () => {
+    expect(document.getElementById('discordLink')).not.toBeNull();
+  });
+
+  it('has ad banner with upgrade button', () => {
+    expect(document.getElementById('adBanner')).not.toBeNull();
+    expect(document.getElementById('btnUpgradePro')).not.toBeNull();
+  });
+
+  it('settings cards have hint descriptions', () => {
+    const hints = document.querySelectorAll('#pageSettings .s-card__hint');
+    expect(hints.length).toBeGreaterThanOrEqual(7);
+  });
+});

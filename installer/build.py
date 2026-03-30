@@ -137,12 +137,73 @@ def build() -> None:
     exe = out / "MapSense.exe"
     if exe.exists():
         size_mb = exe.stat().st_size / (1024 * 1024)
-        print(f"\n[OK] Build complete!")
+        print(f"\n[OK] PyInstaller build complete!")
         print(f"     Output: {out}")
         print(f"     Exe:    {exe} ({size_mb:.1f} MB)")
-        print(f"\n     To run: {exe}")
     else:
         print(f"[WARN] Build finished but exe not found at {exe}")
+
+
+def _find_iscc() -> Path | None:
+    """Locate ISCC.exe from common install paths and the Windows registry."""
+    candidates = [
+        Path(r"C:\Program Files (x86)\Inno Setup 6\ISCC.exe"),
+        Path(r"C:\Program Files\Inno Setup 6\ISCC.exe"),
+        Path(os.path.expandvars(r"%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe")),
+    ]
+    for p in candidates:
+        if p.exists():
+            return p
+
+    # Fall back to registry (per-user and system-wide)
+    try:
+        import winreg
+        for hive in (winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE):
+            try:
+                with winreg.OpenKey(hive, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Inno Setup 6_is1") as key:
+                    loc = winreg.QueryValueEx(key, "InstallLocation")[0]
+                    p = Path(loc) / "ISCC.exe"
+                    if p.exists():
+                        return p
+            except OSError:
+                continue
+    except ImportError:
+        pass
+    return None
+
+
+def build_installer() -> None:
+    """Compile the Inno Setup installer (.exe setup wizard)."""
+    iss = INSTALLER / "mapsense_setup.iss"
+    if not iss.exists():
+        print(f"[ERR] Inno Setup script not found: {iss}")
+        sys.exit(1)
+
+    dist_exe = DIST / "MapSense" / "MapSense.exe"
+    if not dist_exe.exists():
+        print("[ERR] dist/MapSense/MapSense.exe not found. Run PyInstaller build first.")
+        sys.exit(1)
+
+    iscc = _find_iscc()
+    if iscc is None:
+        print("[ERR] Inno Setup not found. Install from https://jrsoftware.org/isdl.php")
+        print("      Or run: winget install JRSoftware.InnoSetup")
+        sys.exit(1)
+
+    cmd = [str(iscc), str(iss)]
+    print(f"[...] Running: {' '.join(cmd)}")
+    result = subprocess.run(cmd, cwd=str(INSTALLER))
+    if result.returncode != 0:
+        print(f"[ERR] Inno Setup failed with exit code {result.returncode}")
+        sys.exit(result.returncode)
+
+    setup_exe = DIST / "MapSense_Setup_1.0.0.exe"
+    if setup_exe.exists():
+        size_mb = setup_exe.stat().st_size / (1024 * 1024)
+        print(f"\n[OK] Installer created!")
+        print(f"     Setup: {setup_exe} ({size_mb:.1f} MB)")
+    else:
+        print("[WARN] Inno Setup finished but output not found")
 
 
 def main() -> None:
@@ -150,6 +211,7 @@ def main() -> None:
     parser.add_argument("--clean", action="store_true", help="Clean build artifacts before building")
     parser.add_argument("--clean-only", action="store_true", help="Only clean, don't build")
     parser.add_argument("--skip-ico", action="store_true", help="Skip ICO generation")
+    parser.add_argument("--skip-installer", action="store_true", help="Skip Inno Setup installer creation")
     args = parser.parse_args()
 
     if args.clean or args.clean_only:
@@ -161,6 +223,9 @@ def main() -> None:
         generate_ico()
 
     build()
+
+    if not args.skip_installer:
+        build_installer()
 
 
 if __name__ == "__main__":

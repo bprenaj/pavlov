@@ -57,8 +57,8 @@ def _try_import_matplotlib():
         from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
         from matplotlib.figure import Figure
         return Figure, FigureCanvasQTAgg, True
-    except ImportError:
-        logger.warning("matplotlib not installed, history chart unavailable")
+    except Exception as exc:
+        logger.warning("matplotlib unavailable: %s", exc, exc_info=True)
         return None, None, False
 
 

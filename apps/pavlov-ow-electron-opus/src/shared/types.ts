@@ -1,0 +1,108 @@
+import type { AlertMode, BeamStatus, EntitlementTier, TrainingMode } from './constants';
+
+export interface MinimapRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface SavedRegion {
+  name: string;
+  rect: MinimapRect;
+}
+
+export interface GamePreset {
+  name: string;
+  minimapX: number;
+  minimapY: number;
+  minimapW: number;
+  minimapH: number;
+  description: string;
+}
+
+export interface PavlovSettings {
+  timeoutSeconds: number;
+  volume: number;
+  tolerancePx: number;
+  alertModes: AlertMode[];
+  customSoundPath: string;
+  minimapRect: MinimapRect | null;
+  regionName: string;
+  savedRegions: SavedRegion[];
+  hotkey: string;
+  irlEnabled: boolean;
+  irlPort: number;
+  irlWebhookUrl: string;
+  firstRun: boolean;
+  trainingMode: TrainingMode;
+}
+
+export interface SessionMetrics {
+  glanceCount: number;
+  glancesPerMin: number;
+  avgGlanceDurationMs: number;
+  avgGapS: number;
+  longestGapS: number;
+  alertsTriggered: number;
+  alertFreeStreakS: number;
+  timeOnMapPct: number;
+  durationS: number;
+}
+
+export interface SessionRecord {
+  timestamp: number;
+  durationS: number;
+  glanceCount: number;
+  glancesPerMin: number;
+  avgGlanceDurationMs: number;
+  avgGapS: number;
+  longestGapS: number;
+  alertsTriggered: number;
+  alertFreeStreakS: number;
+  timeOnMapPct: number;
+  masScore: number;
+  regionName: string;
+}
+
+export interface TrainingState {
+  running: boolean;
+  mode: TrainingMode;
+  elapsedS: number;
+  timeSinceLastGlanceS: number;
+  alertActive: boolean;
+  metrics: SessionMetrics;
+  masScore: number;
+}
+
+export interface GazeData {
+  x: number;
+  y: number;
+  isTracking: boolean;
+}
+
+export interface BootstrapPayload {
+  settings: PavlovSettings;
+  entitlement: EntitlementTier;
+  beamStatus: BeamStatus;
+  history: SessionRecord[];
+}
+
+export interface PavlovApi {
+  getBootstrap(): Promise<BootstrapPayload>;
+  patchSettings(patch: Partial<PavlovSettings>): Promise<PavlovSettings>;
+  startTraining(): Promise<void>;
+  stopTraining(): Promise<void>;
+  markManualGlance(): Promise<void>;
+  setEntitlement(tier: EntitlementTier): Promise<EntitlementTier>;
+  pickCustomSound(): Promise<string>;
+  openRegionOverlay(): Promise<MinimapRect | null>;
+  clearHistory(): Promise<void>;
+  minimizeWindow(): void;
+  closeWindow(): void;
+  checkCmpRequired(): Promise<boolean>;
+  openCmpWindow(): Promise<void>;
+  onState(cb: (state: TrainingState) => void): void;
+  onBeamStatus(cb: (status: BeamStatus) => void): void;
+  onSessionComplete(cb: (record: SessionRecord) => void): void;
+}
