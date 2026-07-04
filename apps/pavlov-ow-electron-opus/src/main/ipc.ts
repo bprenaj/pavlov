@@ -12,11 +12,17 @@ export const IPC = {
   CLOSE_WINDOW: 'pavlov:closeWindow',
   CHECK_CMP_REQUIRED: 'pavlov:checkCmpRequired',
   OPEN_CMP_WINDOW: 'pavlov:openCmpWindow',
+  APPLY_PRESET: 'pavlov:applyPreset',
+  UPDATER_CHECK: 'pavlov:updaterCheck',
+  UPDATER_INSTALL: 'pavlov:updaterInstall',
 
   // Main -> Renderer push events
   ON_STATE: 'pavlov:onState',
   ON_BEAM_STATUS: 'pavlov:onBeamStatus',
   ON_SESSION_COMPLETE: 'pavlov:onSessionComplete',
+  ON_UPDATER_STATE: 'pavlov:onUpdaterState',
+  PLAY_ALERT: 'pavlov:playAlert',
+  STOP_ALERT: 'pavlov:stopAlert',
 
   // Overlay channels
   REGION_CONFIRM: 'overlay:regionConfirm',

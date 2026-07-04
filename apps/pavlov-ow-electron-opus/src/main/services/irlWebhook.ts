@@ -11,12 +11,16 @@ export class IrlWebhook {
 
   configure(enabled: boolean, port: number = IRL_DEFAULT_PORT, webhookUrl: string = ''): void {
     this.webhookUrl = webhookUrl.trim();
+    const portChanged = port !== this.port;
     this.port = port;
 
     if (enabled && !this.enabled) {
       this.startServer();
     } else if (!enabled && this.enabled) {
       this.stopServer();
+    } else if (enabled && this.enabled && portChanged) {
+      this.stopServer();
+      this.startServer();
     }
     this.enabled = enabled;
   }

@@ -52,12 +52,20 @@
   - `npm run typecheck`
   - `npm run lint`
   - `npm test`
-- Current test count: 99 tests across 11 files (all passing)
+- Current test count: 137 tests across 13 files (all passing); lint runs clean with zero warnings -- keep it that way
 - Add tests in the proper suite:
-  - `tests/unit` for pure logic (MAS, region, presets, schemas, entitlement, alertManager, IPC)
+  - `tests/unit` for pure logic (MAS, region, presets, schemas, entitlement, alertManager, IPC, updater, IRL webhook)
   - `tests/integration` for session engine (free mode and paid mode)
-  - `tests/ui` for renderer DOM structure (all elements, metrics, onboarding)
-  - `tests/e2e` for smoke (file existence, script validity, HTML references)
+  - `tests/ui` for renderer DOM structure (all elements, metrics, onboarding, update banner, pro modal)
+  - `tests/e2e` for smoke (file existence, script validity, HTML references, update wiring, no debug cruft)
+- Before cutting a release, run the packaged smoke test: `npm run package`, launch `release/win-unpacked/Pavlov.exe`, confirm the window opens and quits cleanly
+
+## Auto-Update
+
+- `src/main/services/updater.ts` wraps electron-updater (GitHub Releases feed, `build.publish` in package.json = single source of truth).
+- Updates download in the background; the renderer shows a "Restart to Update" banner when staged; tray gets a matching menu item; ignoring it installs on next quit.
+- Disabled automatically in dev (unpackaged) runs. The service is DI-based -- test against `tests/unit/updater.test.ts` patterns, never require electron-updater at module top level.
+- Release: bump version in `apps/pavlov-ow-electron-opus`, push the `v*` tag, and `.github/workflows/release.yml` builds + publishes the installer and `latest.yml`. Never hand-edit `latest.yml`.
 
 ## Docs Index
 

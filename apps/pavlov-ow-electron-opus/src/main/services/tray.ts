@@ -1,5 +1,6 @@
-import { Tray, Menu, nativeImage, BrowserWindow } from 'electron';
+import { app, Tray, Menu, nativeImage, BrowserWindow } from 'electron';
 import type { BeamStatus } from '../../shared/constants';
+import type { UpdaterState } from '../../shared/types';
 
 const ICON_SIZE = 16;
 
@@ -37,6 +38,17 @@ export class TrayManager {
   private tray: Tray | null = null;
   private mainWindow: BrowserWindow | null = null;
   private status: BeamStatus = 'not_running';
+  private updaterState: UpdaterState | null = null;
+  private onInstallUpdate: (() => void) | null = null;
+
+  setUpdateHandler(onInstallUpdate: () => void): void {
+    this.onInstallUpdate = onInstallUpdate;
+  }
+
+  updateUpdaterState(state: UpdaterState): void {
+    this.updaterState = state;
+    this.updateMenu();
+  }
 
   create(mainWindow: BrowserWindow): void {
     this.mainWindow = mainWindow;
@@ -73,7 +85,7 @@ export class TrayManager {
       this.status === 'not_running' ? 'Beam: Not Running' :
       'Beam: Not Installed';
 
-    const menu = Menu.buildFromTemplate([
+    const template: Electron.MenuItemConstructorOptions[] = [
       { label: 'Pavlov', enabled: false },
       { type: 'separator' },
       { label: statusLabel, enabled: false },
@@ -85,15 +97,22 @@ export class TrayManager {
           this.mainWindow?.focus();
         },
       },
-      {
-        label: 'Quit',
-        click: () => {
-          this.mainWindow?.destroy();
-          this.destroy();
-          process.exit(0);
-        },
-      },
-    ]);
-    this.tray.setContextMenu(menu);
+    ];
+
+    if (this.updaterState?.status === 'ready') {
+      template.push({
+        label: `Restart to Update (v${this.updaterState.availableVersion ?? '?'})`,
+        click: () => this.onInstallUpdate?.(),
+      });
+    }
+
+    template.push({
+      label: 'Quit',
+      // app.quit() runs before-quit cleanup (Beam bridge, webhook server,
+      // shortcuts) and lets a downloaded update install on the way out.
+      click: () => app.quit(),
+    });
+
+    this.tray.setContextMenu(Menu.buildFromTemplate(template));
   }
 }

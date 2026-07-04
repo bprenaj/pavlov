@@ -1,9 +1,13 @@
 import { BrowserWindow } from 'electron';
 import type { BrowserWindowConstructorOptions } from 'electron';
 
-let overwolfOverlay: any = null;
+interface OwOverlayApi {
+  createWindow?: (opts: Record<string, unknown>) => { window: BrowserWindow };
+}
+
+let overwolfOverlay: OwOverlayApi | null = null;
 try {
-  overwolfOverlay = require('@overwolf/ow-electron').overlay;
+  overwolfOverlay = require('@overwolf/ow-electron').overlay ?? null;
 } catch {
   // Not in ow-electron runtime; will use plain BrowserWindow fallback
 }
@@ -20,7 +24,7 @@ export function createOverlayWindow(
       name: opts.name ?? 'overlay',
       ...opts,
     });
-    return result.window as BrowserWindow;
+    return result.window;
   }
   return new BrowserWindow({ ...opts, alwaysOnTop: true });
 }

@@ -21,6 +21,9 @@ export const IRL_DEFAULT_PORT = 9876;
 
 export const GAZE_CONFIDENCE_MEDIUM = 2;
 
+export const UPDATE_FIRST_CHECK_DELAY_MS = 30 * 1000;
+export const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
+
 export const VIEWPORT_GAZE_CONFIDENCE_OFFSET = 104;
 export const VIEWPORT_GAZE_X_OFFSET = 112;
 export const VIEWPORT_GAZE_Y_OFFSET = 116;
@@ -41,3 +44,4 @@ export type BeamStatus = 'not_installed' | 'not_running' | 'connecting' | 'track
 export type EntitlementTier = 'free' | 'trial' | 'paid';
 export type AlertMode = 'silent' | 'visual' | 'audio' | 'irl';
 export type TrainingMode = 'free' | 'paid';
+export type UpdaterStatus = 'idle' | 'checking' | 'downloading' | 'ready' | 'error' | 'disabled';

@@ -24,8 +24,13 @@ interface PavlovSettings {
   irlEnabled: boolean; irlPort: number; irlWebhookUrl: string;
   firstRun: boolean; trainingMode: string;
 }
+interface UpdaterState {
+  status: string; availableVersion: string | null; error: string | null;
+}
+interface AlertSound { soundPath: string; volume: number; }
 interface BootstrapPayload {
   settings: PavlovSettings; entitlement: string; beamStatus: string; history: SessionRecord[];
+  appVersion: string; updater: UpdaterState;
 }
 interface PavlovApi {
   getBootstrap(): Promise<BootstrapPayload>;
@@ -41,17 +46,25 @@ interface PavlovApi {
   closeWindow(): void;
   checkCmpRequired(): Promise<boolean>;
   openCmpWindow(): Promise<void>;
+  applyPreset(key: string): Promise<PavlovSettings>;
+  checkForUpdates(): Promise<void>;
+  installUpdate(): Promise<void>;
   onState(cb: (state: TrainingState) => void): void;
   onBeamStatus(cb: (status: string) => void): void;
   onSessionComplete(cb: (record: SessionRecord) => void): void;
+  onUpdaterState(cb: (state: UpdaterState) => void): void;
+  onPlayAlert(cb: (sound: AlertSound) => void): void;
+  onStopAlert(cb: () => void): void;
 }
 
-const api = (window as any).pavlovApi as PavlovApi;
+const api = (window as unknown as { pavlovApi: PavlovApi }).pavlovApi;
 
 let currentSettings: PavlovSettings;
 let currentEntitlement = 'free';
 let historyRecords: SessionRecord[] = [];
 let chartInstance: { destroy: () => void } | null = null;
+let updateBannerDismissed = false;
+let updateCheckRequested = false;
 
 const DISCORD_URL = 'https://discord.gg/khk2dq8Bj3';
 const REDDIT_SHARE_BASE = 'https://www.reddit.com/r/leagueoflegends/submit';
@@ -126,6 +139,7 @@ function syncSettingsToUI(s: PavlovSettings): void {
   ($('settingIrlEnabled') as HTMLInputElement).checked = s.irlEnabled;
   ($('settingIrlPort') as HTMLInputElement).value = String(s.irlPort);
   ($('settingIrlUrl') as HTMLInputElement).value = s.irlWebhookUrl;
+  ($('settingHotkey') as HTMLInputElement).value = s.hotkey;
   updateRegionUI(s);
   $('modeLabel').textContent = s.trainingMode === 'paid' ? 'Pro Mode' : 'Free Mode';
   $('trackingHint').textContent = s.trainingMode === 'free' ? 'Timer mode — Beam not used' : '';
@@ -152,7 +166,48 @@ function updateRegionUI(s: PavlovSettings): void {
 }
 
 function updateAdBanner(): void {
-  $('adBanner').style.display = currentEntitlement === 'paid' ? 'none' : '';
+  // Ads are a free-tier surface; trial and paid are both ad-free.
+  $('adBanner').style.display = currentEntitlement === 'free' ? '' : 'none';
+  const plan =
+    currentEntitlement === 'paid' ? 'Pro' :
+    currentEntitlement === 'trial' ? 'Pro Trial' : 'Free';
+  $('planLabel').textContent = `Plan: ${plan}`;
+}
+
+function isEntitledToPro(): boolean {
+  return currentEntitlement === 'paid' || currentEntitlement === 'trial';
+}
+
+function showProModal(): void { $('proModal').style.display = 'flex'; }
+function hideProModal(): void { $('proModal').style.display = 'none'; }
+
+async function startProTrial(): Promise<void> {
+  currentEntitlement = await api.setEntitlement('trial');
+  hideProModal();
+  updateAdBanner();
+  await patchSetting({ trainingMode: 'paid' });
+}
+
+function updaterStatusText(state: UpdaterState, appVersion?: string): string {
+  switch (state.status) {
+    case 'checking': return 'Checking...';
+    case 'downloading': return `Downloading v${state.availableVersion ?? '?'}...`;
+    case 'ready': return `v${state.availableVersion ?? '?'} ready to install`;
+    case 'error': return updateCheckRequested ? `Check failed: ${state.error ?? 'unknown'}` : 'Up to date';
+    case 'disabled': return 'Auto-update off (dev build)';
+    default: return appVersion ? `Up to date (v${appVersion})` : 'Up to date';
+  }
+}
+
+function renderUpdaterState(state: UpdaterState): void {
+  $('updateStatusLabel').textContent = updaterStatusText(state);
+  const banner = $('updateBanner');
+  if (state.status === 'ready' && !updateBannerDismissed) {
+    $('updateBannerText').textContent = `Pavlov v${state.availableVersion ?? ''} is ready to install.`;
+    banner.style.display = 'flex';
+  } else {
+    banner.style.display = 'none';
+  }
 }
 
 function collectAlertModes(): string[] {
@@ -264,7 +319,7 @@ function renderChart(): void {
 
   const datasets = CHART_METRICS.map((m) => ({
     label: m.label,
-    data: sorted.map((r) => (r as any)[m.key]),
+    data: sorted.map((r) => (r as unknown as Record<string, number>)[m.key]),
     borderColor: m.color,
     backgroundColor: m.color + '18',
     borderWidth: m.width,
@@ -274,7 +329,7 @@ function renderChart(): void {
     pointBackgroundColor: m.color,
   }));
 
-  // @ts-expect-error Chart loaded via CDN
+  // @ts-expect-error Chart is a global from the bundled vendor/chart.umd.min.js
   chartInstance = new Chart(canvas, {
     type: 'line',
     data: { labels, datasets },
@@ -292,6 +347,24 @@ function renderChart(): void {
       },
     },
   });
+}
+
+function toFileUrl(p: string): string {
+  return 'file:///' + p.replace(/\\/g, '/').split('/').map(encodeURIComponent).join('/');
+}
+
+function playAlertSound(sound: AlertSound): void {
+  const audio = $('alertAudioEl') as HTMLAudioElement;
+  audio.src = sound.soundPath ? toFileUrl(sound.soundPath) : 'assets/alert.wav';
+  audio.volume = Math.min(1, Math.max(0, sound.volume / 100));
+  audio.loop = true;
+  audio.play().catch((err) => console.error('[Alert] Audio play failed:', err));
+}
+
+function stopAlertSound(): void {
+  const audio = $('alertAudioEl') as HTMLAudioElement;
+  audio.pause();
+  audio.currentTime = 0;
 }
 
 function showOnboarding(): void { $('onboardingModal').style.display = 'flex'; }
@@ -318,14 +391,33 @@ function bindEvents(): void {
   $('settingTolerance').addEventListener('change', (e) => patchSetting({ tolerancePx: Number((e.target as HTMLInputElement).value) }));
   $('settingVolume').addEventListener('input', (e) => { $('settingVolumeValue').textContent = `${(e.target as HTMLInputElement).value}%`; });
   $('settingVolume').addEventListener('change', (e) => patchSetting({ volume: Number((e.target as HTMLInputElement).value) }));
-  $('settingMode').addEventListener('change', (e) => patchSetting({ trainingMode: (e.target as HTMLSelectElement).value }));
+  $('settingMode').addEventListener('change', (e) => {
+    const select = e.target as HTMLSelectElement;
+    if (select.value === 'paid' && !isEntitledToPro()) {
+      // Pro coaching needs entitlement -- pitch the trial, stay on free.
+      select.value = 'free';
+      showProModal();
+      return;
+    }
+    patchSetting({ trainingMode: select.value });
+  });
 
   document.querySelectorAll('.toggle-pill').forEach((btn) => {
     btn.addEventListener('click', () => handleTogglePill(btn as HTMLElement));
   });
 
   $('btnPickSound').addEventListener('click', async () => { const p = await api.pickCustomSound(); if (p) patchSetting({ customSoundPath: p }); });
-  $('settingPreset').addEventListener('change', () => selectRegion());
+  $('settingPreset').addEventListener('change', async (e) => {
+    const key = (e.target as HTMLSelectElement).value;
+    if (!key) return;
+    if (key === 'custom') {
+      await selectRegion();
+      return;
+    }
+    // Presets carry known minimap rects; apply directly, no overlay needed.
+    currentSettings = await api.applyPreset(key);
+    syncSettingsToUI(currentSettings);
+  });
   $('btnSelectRegion').addEventListener('click', selectRegion);
   $('btnDeleteRegion').addEventListener('click', () => {
     const name = ($('settingSavedRegion') as HTMLSelectElement).value;
@@ -344,7 +436,19 @@ function bindEvents(): void {
     if (parts.length > 0) { ($('settingHotkey') as HTMLInputElement).value = parts.join('+'); patchSetting({ hotkey: parts.join('+') }); }
   });
   $('btnCmpSettings').addEventListener('click', () => api.openCmpWindow());
-  $('btnUpgradePro').addEventListener('click', () => navigateTo('settings'));
+  $('btnUpgradePro').addEventListener('click', showProModal);
+  $('btnStartTrial').addEventListener('click', startProTrial);
+  $('btnCloseProModal').addEventListener('click', hideProModal);
+  $('btnInstallUpdate').addEventListener('click', () => api.installUpdate());
+  $('btnDismissUpdate').addEventListener('click', () => {
+    updateBannerDismissed = true;
+    $('updateBanner').style.display = 'none';
+  });
+  $('btnCheckUpdates').addEventListener('click', () => {
+    updateCheckRequested = true;
+    $('updateStatusLabel').textContent = 'Checking...';
+    api.checkForUpdates();
+  });
   const btnAskAI = document.getElementById('btnAskAI');
   if (btnAskAI) btnAskAI.addEventListener('click', () => window.open('https://chatgpt.com/?q=' + encodeURIComponent(IRL_AI_PROMPT), '_blank'));
 
@@ -386,10 +490,15 @@ async function init(): Promise<void> {
   updateAdBanner();
   renderHistory();
   bindEvents();
+  $('appVersionLabel').textContent = data.appVersion;
+  renderUpdaterState(data.updater);
   if (currentSettings.firstRun) showOnboarding();
   api.onState(updateTrainingState);
   api.onBeamStatus(updateBeamStatus);
   api.onSessionComplete((record: SessionRecord) => { historyRecords.push(record); renderHistory(); });
+  api.onUpdaterState(renderUpdaterState);
+  api.onPlayAlert(playAlertSound);
+  api.onStopAlert(stopAlertSound);
 }
 
 init();

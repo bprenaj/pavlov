@@ -9,11 +9,23 @@ Pavlov follows an Overwolf-first freemium model:
 
 ## Current Implementation Status
 
-- `owadview` is integrated in the renderer free-tier panel.
-- CMP APIs are wired in main process:
+- `owadview` element sits in the renderer free-tier ad panel; it renders real ads
+  under the ow-electron runtime and is inert (placeholder text shows) in plain
+  Electron dev runs.
+- CMP APIs are wired in main process via `require('@overwolf/ow-electron')` with
+  graceful no-op outside the ow-electron runtime:
   - `isCMPRequired`
   - `openCMPWindow`
-- Entitlement is currently a **mock service** (`free`, `trial`, `paid`) to unblock product development while live subscription wiring is prepared.
+- Entitlement is a **mock service** (`free`, `trial`, `paid`) persisted across
+  restarts via electron-store (`initEntitlement` + storage adapter in
+  `src/main/services/entitlement.ts`). Live subscription wiring replaces the
+  storage adapter, not the interface.
+- Paid gating is enforced in the **main process**: `effectiveTrainingMode()`
+  downgrades a `paid` training-mode setting to `free` whenever entitlement is
+  `free`, no matter what the renderer sends.
+- The renderer pitches the trial (`proModal`) when a free user selects Pro mode
+  or clicks Go Pro; starting the trial sets tier `trial` and enables gaze mode.
+- Ads hide for `trial` and `paid` tiers; the plan is shown in Settings → Privacy & Ads.
 
 ## CMP Best Practice
 

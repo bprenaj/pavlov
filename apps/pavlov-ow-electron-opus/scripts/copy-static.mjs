@@ -1,4 +1,4 @@
-import { cpSync, mkdirSync, existsSync } from 'fs';
+import { cpSync, mkdirSync, existsSync, writeFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -35,6 +35,63 @@ const imageMap = {
 for (const [from, to] of Object.entries(imageMap)) {
   const s = resolve(imgSrc, from);
   if (existsSync(s)) cpSync(s, resolve(dest, 'assets', to));
+}
+
+// Bundle Chart.js locally -- the app must not load remote scripts.
+const chartSrc = resolve(root, 'node_modules', 'chart.js', 'dist', 'chart.umd.min.js');
+mkdirSync(resolve(dest, 'vendor'), { recursive: true });
+if (existsSync(chartSrc)) {
+  cpSync(chartSrc, resolve(dest, 'vendor', 'chart.umd.min.js'));
+} else {
+  console.warn('[copy-static] WARNING: chart.js not found in node_modules');
+}
+
+// Generate the default alert bell (deterministic synth, 44.1kHz 16-bit mono).
+// 200ms of leading silence avoids the Chromium audio-start click.
+writeFileSync(resolve(dest, 'assets', 'alert.wav'), generateBellWav());
+
+function generateBellWav() {
+  const sampleRate = 44100;
+  const silenceS = 0.2;
+  const toneS = 1.1;
+  const total = Math.round(sampleRate * (silenceS + toneS));
+  const silenceSamples = Math.round(sampleRate * silenceS);
+  const pcm = new Int16Array(total);
+
+  // Bell-like tone: fundamental + inharmonic partials with exponential decay.
+  const partials = [
+    { f: 880, a: 1.0, d: 3.0 },
+    { f: 1320, a: 0.5, d: 4.5 },
+    { f: 1760, a: 0.35, d: 6.0 },
+    { f: 2217, a: 0.2, d: 8.0 },
+  ];
+  for (let i = silenceSamples; i < total; i++) {
+    const t = (i - silenceSamples) / sampleRate;
+    let v = 0;
+    for (const p of partials) {
+      v += p.a * Math.exp(-p.d * t) * Math.sin(2 * Math.PI * p.f * t);
+    }
+    const attack = Math.min(1, t / 0.005);
+    pcm[i] = Math.round(Math.max(-1, Math.min(1, v * 0.45 * attack)) * 32767);
+  }
+
+  const dataSize = pcm.length * 2;
+  const buf = Buffer.alloc(44 + dataSize);
+  buf.write('RIFF', 0);
+  buf.writeUInt32LE(36 + dataSize, 4);
+  buf.write('WAVE', 8);
+  buf.write('fmt ', 12);
+  buf.writeUInt32LE(16, 16);
+  buf.writeUInt16LE(1, 20);        // PCM
+  buf.writeUInt16LE(1, 22);        // mono
+  buf.writeUInt32LE(sampleRate, 24);
+  buf.writeUInt32LE(sampleRate * 2, 28);
+  buf.writeUInt16LE(2, 32);
+  buf.writeUInt16LE(16, 34);
+  buf.write('data', 36);
+  buf.writeUInt32LE(dataSize, 40);
+  Buffer.from(pcm.buffer).copy(buf, 44);
+  return buf;
 }
 
 console.log('[copy-static] Renderer assets copied.');

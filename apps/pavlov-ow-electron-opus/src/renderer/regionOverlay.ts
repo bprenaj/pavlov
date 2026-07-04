@@ -1,15 +1,22 @@
 /* Plain script - no module wrapper */
-const rApi = (window as any).regionOverlayApi;
+interface RegionRect { x: number; y: number; width: number; height: number; }
+interface RegionOverlayApi {
+  confirmRegion(rect: RegionRect): void;
+  cancelRegion(): void;
+  onInit(cb: (data: { screenWidth: number; screenHeight: number }) => void): void;
+}
+
+const rApi = (window as unknown as { regionOverlayApi: RegionOverlayApi }).regionOverlayApi;
 const selBox = document.getElementById('selection')!;
-const hintMain = document.getElementById('hintMain')!;
 const hintSub = document.getElementById('hintSub')!;
 
 let startX = 0, startY = 0, dragging = false;
-let pendingRect: { x: number; y: number; width: number; height: number } | null = null;
+let pendingRect: RegionRect | null = null;
 
-function setPendingRect(r: typeof pendingRect): void {
+function setPendingRect(r: RegionRect | null): void {
   pendingRect = r;
-  (window as any).__pendingRect = r;
+  // Mirrored to the main world so the main process Enter fallback can read it.
+  (window as unknown as { __pendingRect: RegionRect | null }).__pendingRect = r;
   hintSub.style.display = r ? '' : 'none';
 }
 

@@ -68,6 +68,32 @@ describe('Smoke Tests', () => {
     }
   });
 
+  it('auto-update is wired: dependency, publish feed, updater service', () => {
+    const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf-8'));
+    expect(pkg.dependencies['electron-updater']).toBeDefined();
+    expect(pkg.build.publish).toMatchObject({ provider: 'github', owner: 'bprenaj', repo: 'pavlov' });
+    expect(fs.existsSync(path.join(ROOT, 'src', 'main', 'services', 'updater.ts'))).toBe(true);
+  });
+
+  it('build script bundles chart.js and generates the alert sound', () => {
+    const script = fs.readFileSync(path.join(ROOT, 'scripts', 'copy-static.mjs'), 'utf-8');
+    expect(script).toContain('chart.umd.min.js');
+    expect(script).toContain('alert.wav');
+  });
+
+  it('renderer has no leftover debug instrumentation', () => {
+    const files = [
+      'src/main/index.ts',
+      'src/main/overlayPreload.ts',
+      'src/renderer/app.ts',
+      'src/renderer/regionOverlay.ts',
+    ];
+    for (const f of files) {
+      const content = fs.readFileSync(path.join(ROOT, f), 'utf-8');
+      expect(content, `${f} contains debug markers`).not.toMatch(/DBG293|debug-293fda|agent log/);
+    }
+  });
+
   it('HTML files reference correct JS scripts', () => {
     const indexHtml = fs.readFileSync(path.join(ROOT, 'src', 'renderer', 'index.html'), 'utf-8');
     expect(indexHtml).toContain('app.js');

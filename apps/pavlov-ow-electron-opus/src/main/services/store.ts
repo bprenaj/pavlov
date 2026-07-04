@@ -39,6 +39,15 @@ export function clearHistory(): void {
   store.set('history', []);
 }
 
+export function loadEntitlementTier(): string | null {
+  const value = store.get('entitlementTier');
+  return typeof value === 'string' ? value : null;
+}
+
+export function saveEntitlementTier(tier: string): void {
+  store.set('entitlementTier', tier);
+}
+
 export function getStorePath(): string {
   return store.path;
 }

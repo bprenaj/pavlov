@@ -4,45 +4,51 @@ import {
   ipcMain,
   dialog,
   screen,
+  shell,
   globalShortcut,
 } from 'electron';
 import * as path from 'path';
-import * as fs from 'fs';
 import { IPC } from './ipc';
-
-// #region agent log
-const DBG_LOG = path.join(__dirname, '..', '..', '..', '..', 'debug-293fda.log');
-function dbg(loc: string, msg: string, data: Record<string, unknown> = {}, hyp = 'H1') {
-  try { fs.appendFileSync(DBG_LOG, JSON.stringify({sessionId:'293fda',location:loc,message:msg,data,timestamp:Date.now(),hypothesisId:hyp}) + '\n'); } catch(_){}
-}
-// #endregion
-import { loadSettings, patchSettings, loadHistory, addSessionRecord, clearHistory } from './services/store';
-import { getEntitlement, setEntitlement } from './services/entitlement';
+import {
+  loadSettings,
+  patchSettings,
+  loadHistory,
+  addSessionRecord,
+  clearHistory,
+  loadEntitlementTier,
+  saveEntitlementTier,
+} from './services/store';
+import { getEntitlement, setEntitlement, isPaid, initEntitlement } from './services/entitlement';
 import { migrateLegacyData } from './services/migration';
 import { BeamBridge } from './services/beamBridge';
 import { SessionEngine } from './services/sessionEngine';
 import { AlertManager } from './services/alertManager';
 import { IrlWebhook } from './services/irlWebhook';
 import { TrayManager } from './services/tray';
+import { UpdaterService } from './services/updater';
 import { createOverlayWindow } from './services/overlayFactory';
+import { getPreset, presetToRect } from '../shared/gamePresets';
+import type { EntitlementTier, TrainingMode } from '../shared/constants';
 import type { MinimapRect, PavlovSettings } from '../shared/types';
 
 let mainWindow: BrowserWindow | null = null;
 let alertOverlayWindow: BrowserWindow | null = null;
 let regionOverlayWindow: BrowserWindow | null = null;
 let regionResolve: ((rect: MinimapRect | null) => void) | null = null;
+let registeredHotkey: string | null = null;
 
 const beamBridge = new BeamBridge();
 const sessionEngine = new SessionEngine();
 const irlWebhook = new IrlWebhook();
 const trayManager = new TrayManager();
+const updater = new UpdaterService();
 
 const alertManager = new AlertManager({
-  playAudio: (_soundPath, _volume) => {
-    mainWindow?.webContents.send('pavlov:playAlert', { soundPath: _soundPath, volume: _volume });
+  playAudio: (soundPath, volume) => {
+    mainWindow?.webContents.send(IPC.PLAY_ALERT, { soundPath, volume });
   },
   stopAudio: () => {
-    mainWindow?.webContents.send('pavlov:stopAlert');
+    mainWindow?.webContents.send(IPC.STOP_ALERT);
   },
   showVisualAlert: (show) => {
     alertOverlayWindow?.webContents.send(IPC.ALERT_STATE, show);
@@ -70,6 +76,22 @@ function getRendererPath(file: string): string {
   return path.join(__dirname, '..', 'renderer', file);
 }
 
+/** Paid coaching requires entitlement; everything else falls back to free. */
+function effectiveTrainingMode(settings: PavlovSettings): TrainingMode {
+  return settings.trainingMode === 'paid' && isPaid() ? 'paid' : 'free';
+}
+
+function configureSession(settings: PavlovSettings): void {
+  sessionEngine.configure({
+    mode: effectiveTrainingMode(settings),
+    timeoutS: settings.timeoutSeconds,
+    tolerancePx: settings.tolerancePx,
+    minimapRect: settings.minimapRect,
+    regionName: settings.regionName,
+  });
+  alertManager.configure(settings.alertModes, settings.volume, settings.customSoundPath);
+}
+
 function createMainWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: 960,
@@ -88,6 +110,13 @@ function createMainWindow(): BrowserWindow {
   });
 
   win.loadFile(getRendererPath('index.html'));
+
+  // External links (Discord, Reddit share, IRL guide) go to the default
+  // browser, never to a new Electron window.
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('https://')) shell.openExternal(url);
+    return { action: 'deny' };
+  });
 
   win.once('ready-to-show', () => {
     win.show();
@@ -129,7 +158,10 @@ function createAlertOverlay(): BrowserWindow {
 }
 
 function forceCloseRegionOverlay(): void {
-  if (regionResolve) { regionResolve(null); regionResolve = null; }
+  if (regionResolve) {
+    regionResolve(null);
+    regionResolve = null;
+  }
   if (regionOverlayWindow && !regionOverlayWindow.isDestroyed()) {
     regionOverlayWindow.close();
   }
@@ -142,11 +174,6 @@ function createRegionOverlay(): Promise<MinimapRect | null> {
     regionResolve = resolve;
     const primaryDisplay = screen.getPrimaryDisplay();
     const { width, height } = primaryDisplay.size;
-    const preloadPath = getOverlayPreloadPath();
-
-    // #region agent log
-    dbg('index.ts:createRegionOverlay','Creating region overlay',{width,height,preloadPath,preloadExists:fs.existsSync(preloadPath)},'H2');
-    // #endregion
 
     regionOverlayWindow = createOverlayWindow({
       name: 'pavlov-region',
@@ -160,7 +187,7 @@ function createRegionOverlay(): Promise<MinimapRect | null> {
       resizable: false,
       movable: false,
       webPreferences: {
-        preload: preloadPath,
+        preload: getOverlayPreloadPath(),
         contextIsolation: true,
         nodeIntegration: false,
         sandbox: false,
@@ -169,47 +196,41 @@ function createRegionOverlay(): Promise<MinimapRect | null> {
 
     regionOverlayWindow.loadFile(getRendererPath('region-overlay.html'));
 
-    // SAFETY LAYER 1: Intercept keyboard at Chromium level (main process).
-    // Works even if renderer JS is completely broken or never loaded.
+    // Safety layer 1: intercept keys at the Chromium level so Escape/Enter
+    // work even if the overlay renderer never loaded.
     regionOverlayWindow.webContents.on('before-input-event', (event, input) => {
       if (input.type !== 'keyDown') return;
-      // #region agent log
-      dbg('index.ts:before-input-event','Key intercepted at Chromium level',{key:input.key,type:input.type},'H3');
-      // #endregion
       if (input.key === 'Escape') {
         event.preventDefault();
         forceCloseRegionOverlay();
       } else if (input.key === 'Enter') {
         event.preventDefault();
-        regionOverlayWindow?.webContents.executeJavaScript('window.__pendingRect || null').then((rect: unknown) => {
-          if (rect && typeof rect === 'object' && typeof (rect as any).x === 'number' && typeof (rect as any).width === 'number') {
-            if (regionResolve) { regionResolve(rect as MinimapRect); regionResolve = null; }
-            regionOverlayWindow?.close();
-          }
-        }).catch(() => {});
+        regionOverlayWindow?.webContents
+          .executeJavaScript('window.__pendingRect || null')
+          .then((rect: unknown) => {
+            if (isMinimapRect(rect)) {
+              if (regionResolve) {
+                regionResolve(rect);
+                regionResolve = null;
+              }
+              regionOverlayWindow?.close();
+            }
+          })
+          .catch(() => {});
       }
     });
 
-    // SAFETY LAYER 2: Auto-close after 60 seconds. Overlay cannot exist forever.
+    // Safety layer 2: the overlay can never outlive 60 seconds.
     const safetyTimeout = setTimeout(() => {
-      // #region agent log
-      dbg('index.ts:safetyTimeout','60s timeout - force closing overlay',{},'H5');
-      // #endregion
       forceCloseRegionOverlay();
     }, 60_000);
 
-    // SAFETY LAYER 3: Global shortcut for Escape works even if window has no focus.
+    // Safety layer 3: global Escape works even without window focus.
     globalShortcut.register('Escape', () => {
-      // #region agent log
-      dbg('index.ts:globalShortcut-Escape','Global Escape pressed',{},'H3');
-      // #endregion
       forceCloseRegionOverlay();
     });
 
     regionOverlayWindow.once('ready-to-show', () => {
-      // #region agent log
-      dbg('index.ts:ready-to-show','ready-to-show fired, calling show+focus',{windowId:regionOverlayWindow?.id},'H3');
-      // #endregion
       regionOverlayWindow?.show();
       regionOverlayWindow?.focus();
       regionOverlayWindow?.webContents.send(IPC.REGION_INIT, {
@@ -217,15 +238,6 @@ function createRegionOverlay(): Promise<MinimapRect | null> {
         screenHeight: height,
       });
     });
-
-    // #region agent log
-    regionOverlayWindow.webContents.on('did-finish-load', () => {
-      dbg('index.ts:did-finish-load','Overlay page finished loading',{url:regionOverlayWindow?.webContents.getURL()},'H1');
-    });
-    regionOverlayWindow.webContents.on('console-message', (_e, _level, msg) => {
-      dbg('index.ts:console-message','Renderer console',{msg},'H1');
-    });
-    // #endregion
 
     regionOverlayWindow.on('closed', () => {
       clearTimeout(safetyTimeout);
@@ -239,12 +251,25 @@ function createRegionOverlay(): Promise<MinimapRect | null> {
   });
 }
 
+function isMinimapRect(value: unknown): value is MinimapRect {
+  if (!value || typeof value !== 'object') return false;
+  const r = value as Record<string, unknown>;
+  return (
+    typeof r.x === 'number' &&
+    typeof r.y === 'number' &&
+    typeof r.width === 'number' &&
+    typeof r.height === 'number'
+  );
+}
+
 function registerIpcHandlers(): void {
   ipcMain.handle(IPC.GET_BOOTSTRAP, () => ({
     settings: loadSettings(),
     entitlement: getEntitlement(),
     beamStatus: beamBridge.getStatus(),
     history: loadHistory(),
+    appVersion: app.getVersion(),
+    updater: updater.getState(),
   }));
 
   ipcMain.handle(IPC.PATCH_SETTINGS, (_e, patch: Partial<PavlovSettings>) => {
@@ -254,35 +279,20 @@ function registerIpcHandlers(): void {
   });
 
   ipcMain.handle(IPC.START_TRAINING, () => {
-    const settings = loadSettings();
-    sessionEngine.configure({
-      mode: settings.trainingMode,
-      timeoutS: settings.timeoutSeconds,
-      tolerancePx: settings.tolerancePx,
-      minimapRect: settings.minimapRect,
-      regionName: settings.regionName,
-    });
-    alertManager.configure(
-      settings.alertModes,
-      settings.volume,
-      settings.customSoundPath,
-    );
+    configureSession(loadSettings());
     sessionEngine.start();
   });
 
   ipcMain.handle(IPC.STOP_TRAINING, () => {
-    const record = sessionEngine.stop();
+    sessionEngine.stop();
     alertManager.dismiss();
-    if (record && record.durationS >= 10) {
-      addSessionRecord(record);
-    }
   });
 
   ipcMain.handle(IPC.MARK_MANUAL_GLANCE, () => {
     sessionEngine.markManualGlance();
   });
 
-  ipcMain.handle(IPC.SET_ENTITLEMENT, (_e, tier) => {
+  ipcMain.handle(IPC.SET_ENTITLEMENT, (_e, tier: EntitlementTier) => {
     return setEntitlement(tier);
   });
 
@@ -301,16 +311,27 @@ function registerIpcHandlers(): void {
     return createRegionOverlay();
   });
 
+  ipcMain.handle(IPC.APPLY_PRESET, (_e, key: string) => {
+    const preset = getPreset(key);
+    const current = loadSettings();
+    if (!preset || key === 'custom') return current;
+    const { width, height } = screen.getPrimaryDisplay().size;
+    const rect = presetToRect(preset, width, height);
+    const updated = patchSettings({ minimapRect: rect, regionName: preset.name });
+    applySettings(updated);
+    return updated;
+  });
+
   ipcMain.handle(IPC.CLEAR_HISTORY, () => {
     clearHistory();
   });
 
   ipcMain.handle(IPC.CHECK_CMP_REQUIRED, () => {
     try {
-      const owElectron = require('@aspect-build/rules_ts/../ow-electron');
+      const owElectron = require('@overwolf/ow-electron');
       return owElectron?.isCMPRequired?.() ?? false;
     } catch {
-      return false;
+      return false; // not running under ow-electron
     }
   });
 
@@ -318,7 +339,17 @@ function registerIpcHandlers(): void {
     try {
       const owElectron = require('@overwolf/ow-electron');
       owElectron?.openCMPWindow?.();
-    } catch { /* not in ow-electron runtime */ }
+    } catch {
+      /* not in ow-electron runtime */
+    }
+  });
+
+  ipcMain.handle(IPC.UPDATER_CHECK, () => {
+    updater.check();
+  });
+
+  ipcMain.handle(IPC.UPDATER_INSTALL, () => {
+    updater.installNow();
   });
 
   ipcMain.on(IPC.MINIMIZE_WINDOW, () => {
@@ -330,9 +361,6 @@ function registerIpcHandlers(): void {
   });
 
   ipcMain.on(IPC.REGION_CONFIRM, (_e, rect: MinimapRect) => {
-    // #region agent log
-    dbg('index.ts:REGION_CONFIRM','IPC REGION_CONFIRM received',{rect},'H1');
-    // #endregion
     if (regionResolve) {
       regionResolve(rect);
       regionResolve = null;
@@ -341,9 +369,6 @@ function registerIpcHandlers(): void {
   });
 
   ipcMain.on(IPC.REGION_CANCEL, () => {
-    // #region agent log
-    dbg('index.ts:REGION_CANCEL','IPC REGION_CANCEL received',{},'H1');
-    // #endregion
     if (regionResolve) {
       regionResolve(null);
       regionResolve = null;
@@ -356,24 +381,25 @@ function applySettings(settings: PavlovSettings): void {
   irlWebhook.configure(settings.irlEnabled, settings.irlPort, settings.irlWebhookUrl);
   alertManager.configure(settings.alertModes, settings.volume, settings.customSoundPath);
 
-  if (settings.hotkey) {
-    globalShortcut.unregisterAll();
+  // Swap only our own hotkey; never unregisterAll -- the region overlay's
+  // temporary Escape shortcut must survive settings changes.
+  if (registeredHotkey && registeredHotkey !== settings.hotkey) {
+    globalShortcut.unregister(registeredHotkey);
+    registeredHotkey = null;
+  }
+
+  if (settings.hotkey && settings.hotkey !== registeredHotkey) {
     try {
       globalShortcut.register(settings.hotkey, () => {
         if (sessionEngine.isRunning()) {
           sessionEngine.stop();
           alertManager.dismiss();
         } else {
-          sessionEngine.configure({
-            mode: settings.trainingMode,
-            timeoutS: settings.timeoutSeconds,
-            tolerancePx: settings.tolerancePx,
-            minimapRect: settings.minimapRect,
-            regionName: settings.regionName,
-          });
+          configureSession(loadSettings());
           sessionEngine.start();
         }
       });
+      registeredHotkey = settings.hotkey;
     } catch (err: unknown) {
       console.error('[Main] Failed to register hotkey:', (err as Error).message);
     }
@@ -385,8 +411,13 @@ function wireEvents(): void {
     mainWindow?.webContents.send(IPC.ON_STATE, state);
   });
 
+  // Single persistence path for every way a session can end (button, hotkey,
+  // tray). Sub-10s sessions are noise and are not recorded.
   sessionEngine.on('sessionComplete', (record) => {
-    mainWindow?.webContents.send(IPC.ON_SESSION_COMPLETE, record);
+    if (record && record.durationS >= 10) {
+      addSessionRecord(record);
+      mainWindow?.webContents.send(IPC.ON_SESSION_COMPLETE, record);
+    }
   });
 
   sessionEngine.on('alert', (active: boolean) => {
@@ -408,8 +439,29 @@ function wireEvents(): void {
   };
 }
 
+function initUpdater(): void {
+  trayManager.setUpdateHandler(() => updater.installNow());
+  updater.init({
+    isPackaged: app.isPackaged,
+    getAutoUpdater: () => {
+      // Lazy: electron-updater reads app metadata at require time and is
+      // never needed in dev runs.
+      const { autoUpdater } = require('electron-updater');
+      return autoUpdater;
+    },
+    onStateChange: (state) => {
+      mainWindow?.webContents.send(IPC.ON_UPDATER_STATE, state);
+      trayManager.updateUpdaterState(state);
+    },
+  });
+}
+
 async function bootstrap(): Promise<void> {
   migrateLegacyData();
+  initEntitlement({
+    get: () => loadEntitlementTier() as EntitlementTier | null,
+    set: (tier) => saveEntitlementTier(tier),
+  });
   const settings = loadSettings();
   applySettings(settings);
 
@@ -419,6 +471,7 @@ async function bootstrap(): Promise<void> {
 
   registerIpcHandlers();
   wireEvents();
+  initUpdater();
 
   const primaryDisplay = screen.getPrimaryDisplay();
   const { width, height } = primaryDisplay.size;
@@ -428,10 +481,11 @@ async function bootstrap(): Promise<void> {
 app.whenReady().then(bootstrap);
 
 app.on('window-all-closed', () => {
-  // On macOS keep running (convention). On Windows, we rely on tray.
+  // Keep running: Pavlov lives in the tray while training.
 });
 
 app.on('before-quit', () => {
+  sessionEngine.stop();
   beamBridge.stop();
   irlWebhook.shutdown();
   trayManager.destroy();

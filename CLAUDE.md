@@ -391,16 +391,51 @@ npm run lint
 npm test
 ```
 
-### Test structure (99 tests, 11 files)
+### Test structure (137 tests, 13 files)
 
 | Suite | Files | Tests | Coverage |
 |-------|-------|-------|----------|
-| `tests/unit/` | 7 | 55 | MAS, region, presets, schemas, entitlement, alertManager, IPC |
+| `tests/unit/` | 9 | 71 | MAS, region, presets, schemas, entitlement (+persistence), alertManager, IPC, updater state machine, IRL webhook server |
 | `tests/integration/` | 2 | 19 | Session engine free + paid modes |
-| `tests/ui/` | 1 | 15 | Renderer DOM structure (all elements, metrics, onboarding) |
-| `tests/e2e/` | 1 | 6 | Smoke checks (files, scripts, HTML references) |
+| `tests/ui/` | 1 | 30 | Renderer DOM structure (all elements, metrics, onboarding, update banner, pro modal, offline-safety/CSP) |
+| `tests/e2e/` | 1 | 9 | Smoke checks (files, scripts, HTML references, auto-update wiring, no debug cruft) |
 
 When adding new UI elements, add corresponding tests to `tests/ui/rendererLayout.test.ts`.
+Lint runs clean with zero warnings; keep it that way.
+
+### Packaged smoke test (before any release)
+
+```bash
+cd apps/pavlov-ow-electron-opus
+npm run package                      # NSIS installer + win-unpacked into release/
+./release/win-unpacked/Pavlov.exe    # must open the window, tray, and quit cleanly
+```
+
+## Releases & Auto-Update
+
+The installed app self-updates via `electron-updater` against GitHub Releases
+(`src/main/services/updater.ts`; owner/repo in package.json `build.publish` --
+`bprenaj/pavlov`, public, so updates work anonymously). Checks 30s after launch
+and every 4h; downloads in the background; the renderer shows a
+"Restart to Update" banner (Cursor-style) plus a tray menu item when the update
+is staged. Installing restarts the app immediately; ignoring it installs on quit.
+Dev (unpackaged) runs disable the updater.
+
+**Cutting a release:**
+
+```bash
+cd apps/pavlov-ow-electron-opus
+npm version patch        # bumps package.json + creates the v* tag
+git push --follow-tags   # .github/workflows/release.yml builds + publishes
+```
+
+Publishing uploads the installer, the `.blockmap` (differential updates), and
+`latest.yml` (the update feed). Never hand-edit or delete `latest.yml`.
+
+> **Install gotcha (March 2026):** `@overwolf/ow-electron` must stay on a
+> version whose runtime binary is still downloadable (403s otherwise). Pinned
+> to 39.6.1. If `npm install` fails on the ow-electron postinstall, bump to the
+> newest stable ow-electron release.
 
 ## Development Workflow
 

@@ -1,5 +1,11 @@
-import { describe, it, expect } from 'vitest';
-import { getEntitlement, setEntitlement, isPaid } from '../../src/main/services/entitlement';
+import { describe, it, expect, vi } from 'vitest';
+import {
+  getEntitlement,
+  setEntitlement,
+  isPaid,
+  initEntitlement,
+} from '../../src/main/services/entitlement';
+import type { EntitlementTier } from '../../src/shared/constants';
 
 describe('EntitlementService', () => {
   it('defaults to free', () => {
@@ -28,5 +34,38 @@ describe('EntitlementService', () => {
   it('returns the new tier from setEntitlement', () => {
     const result = setEntitlement('paid');
     expect(result).toBe('paid');
+  });
+
+  it('rejects unknown tiers', () => {
+    setEntitlement('paid');
+    const result = setEntitlement('vip' as EntitlementTier);
+    expect(result).toBe('paid');
+  });
+});
+
+describe('Entitlement persistence', () => {
+  it('restores the saved tier on init', () => {
+    initEntitlement({ get: () => 'trial', set: () => {} });
+    expect(getEntitlement()).toBe('trial');
+  });
+
+  it('ignores corrupt saved values', () => {
+    setEntitlement('free');
+    initEntitlement({ get: () => 'banana' as EntitlementTier, set: () => {} });
+    expect(getEntitlement()).toBe('free');
+  });
+
+  it('writes tier changes to storage', () => {
+    const set = vi.fn();
+    initEntitlement({ get: () => null, set });
+    setEntitlement('paid');
+    expect(set).toHaveBeenCalledWith('paid');
+  });
+
+  it('does not write rejected tiers to storage', () => {
+    const set = vi.fn();
+    initEntitlement({ get: () => null, set });
+    setEntitlement('nope' as EntitlementTier);
+    expect(set).not.toHaveBeenCalled();
   });
 });

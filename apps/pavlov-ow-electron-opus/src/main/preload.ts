@@ -16,9 +16,15 @@ const CH = {
   CLOSE_WINDOW: 'pavlov:closeWindow',
   CHECK_CMP_REQUIRED: 'pavlov:checkCmpRequired',
   OPEN_CMP_WINDOW: 'pavlov:openCmpWindow',
+  APPLY_PRESET: 'pavlov:applyPreset',
+  UPDATER_CHECK: 'pavlov:updaterCheck',
+  UPDATER_INSTALL: 'pavlov:updaterInstall',
   ON_STATE: 'pavlov:onState',
   ON_BEAM_STATUS: 'pavlov:onBeamStatus',
   ON_SESSION_COMPLETE: 'pavlov:onSessionComplete',
+  ON_UPDATER_STATE: 'pavlov:onUpdaterState',
+  PLAY_ALERT: 'pavlov:playAlert',
+  STOP_ALERT: 'pavlov:stopAlert',
 } as const;
 
 const api: PavlovApi = {
@@ -35,6 +41,9 @@ const api: PavlovApi = {
   closeWindow: () => ipcRenderer.send(CH.CLOSE_WINDOW),
   checkCmpRequired: () => ipcRenderer.invoke(CH.CHECK_CMP_REQUIRED),
   openCmpWindow: () => ipcRenderer.invoke(CH.OPEN_CMP_WINDOW),
+  applyPreset: (key: string) => ipcRenderer.invoke(CH.APPLY_PRESET, key),
+  checkForUpdates: () => ipcRenderer.invoke(CH.UPDATER_CHECK),
+  installUpdate: () => ipcRenderer.invoke(CH.UPDATER_INSTALL),
   onState: (cb) => {
     ipcRenderer.on(CH.ON_STATE, (_e, state) => cb(state));
   },
@@ -43,6 +52,15 @@ const api: PavlovApi = {
   },
   onSessionComplete: (cb) => {
     ipcRenderer.on(CH.ON_SESSION_COMPLETE, (_e, record) => cb(record));
+  },
+  onUpdaterState: (cb) => {
+    ipcRenderer.on(CH.ON_UPDATER_STATE, (_e, state) => cb(state));
+  },
+  onPlayAlert: (cb) => {
+    ipcRenderer.on(CH.PLAY_ALERT, (_e, sound) => cb(sound));
+  },
+  onStopAlert: (cb) => {
+    ipcRenderer.on(CH.STOP_ALERT, () => cb());
   },
 };
 

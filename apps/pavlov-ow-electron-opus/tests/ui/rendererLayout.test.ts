@@ -85,7 +85,7 @@ describe('Renderer Layout', () => {
 
   it('settings page has card-based layout', () => {
     const cards = document.querySelectorAll('#pageSettings .s-card');
-    expect(cards.length).toBe(7);
+    expect(cards.length).toBe(8);
   });
 
   it('settings page has all controls', () => {
@@ -147,5 +147,55 @@ describe('Renderer Layout', () => {
   it('settings cards have hint descriptions', () => {
     const hints = document.querySelectorAll('#pageSettings .s-card__hint');
     expect(hints.length).toBeGreaterThanOrEqual(7);
+  });
+
+  it('has update banner with install and dismiss buttons', () => {
+    expect(document.getElementById('updateBanner')).not.toBeNull();
+    expect(document.getElementById('updateBannerText')).not.toBeNull();
+    expect(document.getElementById('btnInstallUpdate')).not.toBeNull();
+    expect(document.getElementById('btnDismissUpdate')).not.toBeNull();
+  });
+
+  it('settings page has updates card', () => {
+    expect(document.getElementById('btnCheckUpdates')).not.toBeNull();
+    expect(document.getElementById('updateStatusLabel')).not.toBeNull();
+    expect(document.getElementById('appVersionLabel')).not.toBeNull();
+  });
+
+  it('has pro upgrade modal', () => {
+    expect(document.getElementById('proModal')).not.toBeNull();
+    expect(document.getElementById('btnStartTrial')).not.toBeNull();
+    expect(document.getElementById('btnCloseProModal')).not.toBeNull();
+  });
+
+  it('has plan label in privacy card', () => {
+    expect(document.getElementById('planLabel')).not.toBeNull();
+  });
+
+  it('ad banner contains the Overwolf owadview element', () => {
+    expect(document.querySelector('#adBanner owadview')).not.toBeNull();
+  });
+
+  it('loads no remote scripts, styles, or fonts (offline-safe)', () => {
+    const external = document.querySelectorAll(
+      'script[src^="http"], link[href^="http"]',
+    );
+    expect(external.length).toBe(0);
+  });
+
+  it('bundles Chart.js from local vendor directory', () => {
+    const scripts = Array.from(document.querySelectorAll('script[src]')).map(
+      (s) => s.getAttribute('src'),
+    );
+    expect(scripts).toContain('vendor/chart.umd.min.js');
+  });
+
+  it('CSP forbids remote script sources and eval', () => {
+    const csp =
+      document
+        .querySelector('meta[http-equiv="Content-Security-Policy"]')
+        ?.getAttribute('content') ?? '';
+    expect(csp).not.toContain('unsafe-eval');
+    expect(csp).not.toContain('https://cdn');
   });
 });

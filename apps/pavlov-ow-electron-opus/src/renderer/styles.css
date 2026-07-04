@@ -284,3 +284,13 @@ html, body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-2); }
+
+/* --- Update banner (Cursor-style restart prompt) --- */
+.update-banner {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 8px 16px;
+  background: linear-gradient(90deg, rgba(0,212,255,0.12), rgba(0,229,160,0.10));
+  border-bottom: 1px solid var(--line);
+  font-size: 13px; color: var(--text-0);
+}
+.update-banner__actions { display: flex; gap: 8px; }

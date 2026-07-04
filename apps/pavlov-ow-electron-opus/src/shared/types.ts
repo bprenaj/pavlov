@@ -1,4 +1,4 @@
-import type { AlertMode, BeamStatus, EntitlementTier, TrainingMode } from './constants';
+import type { AlertMode, BeamStatus, EntitlementTier, TrainingMode, UpdaterStatus } from './constants';
 
 export interface MinimapRect {
   x: number;
@@ -81,11 +81,24 @@ export interface GazeData {
   isTracking: boolean;
 }
 
+export interface UpdaterState {
+  status: UpdaterStatus;
+  availableVersion: string | null;
+  error: string | null;
+}
+
+export interface AlertSound {
+  soundPath: string;
+  volume: number;
+}
+
 export interface BootstrapPayload {
   settings: PavlovSettings;
   entitlement: EntitlementTier;
   beamStatus: BeamStatus;
   history: SessionRecord[];
+  appVersion: string;
+  updater: UpdaterState;
 }
 
 export interface PavlovApi {
@@ -102,7 +115,13 @@ export interface PavlovApi {
   closeWindow(): void;
   checkCmpRequired(): Promise<boolean>;
   openCmpWindow(): Promise<void>;
+  applyPreset(key: string): Promise<PavlovSettings>;
+  checkForUpdates(): Promise<void>;
+  installUpdate(): Promise<void>;
   onState(cb: (state: TrainingState) => void): void;
   onBeamStatus(cb: (status: BeamStatus) => void): void;
   onSessionComplete(cb: (record: SessionRecord) => void): void;
+  onUpdaterState(cb: (state: UpdaterState) => void): void;
+  onPlayAlert(cb: (sound: AlertSound) => void): void;
+  onStopAlert(cb: () => void): void;
 }

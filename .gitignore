@@ -47,3 +47,8 @@ src/assets/alert.wav
 *.flv
 *.tiff
 *.mp3
+
+# ow-electron app: keep the packaged icon despite the Python-era build/ rule
+!apps/pavlov-ow-electron-opus/build/
+# electron-builder output
+apps/pavlov-ow-electron-opus/release/

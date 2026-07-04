@@ -1,0 +1,39 @@
+name: Release
+
+# Builds the Windows installer and publishes it (plus latest.yml, the
+# auto-update feed) to this repo's GitHub Releases whenever a version tag
+# is pushed:
+#
+#   cd apps/pavlov-ow-electron-opus
+#   npm version patch           # bumps package.json + creates the tag
+#   git push --follow-tags      # triggers this workflow
+#
+# Installed apps pick the update up automatically (src/main/services/updater.ts).
+# Never hand-edit or delete latest.yml on a release -- installed apps poll it.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: apps/pavlov-ow-electron-opus
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/pavlov-ow-electron-opus/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

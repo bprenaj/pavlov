@@ -3,11 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' file: data:; script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net; media-src 'self' file:;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' file: data:; script-src 'self'; media-src 'self' file:;">
   <title>Pavlov</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -50,6 +47,14 @@
           <button id="btnClose" class="win-btn win-btn--close" title="Close">&#x2715;</button>
         </div>
       </header>
+
+      <div id="updateBanner" class="update-banner" style="display:none;">
+        <span id="updateBannerText">A new version of Pavlov is ready.</span>
+        <div class="update-banner__actions">
+          <button id="btnInstallUpdate" class="btn btn--accent btn--sm">Restart to Update</button>
+          <button id="btnDismissUpdate" class="btn btn--ghost btn--sm">Later</button>
+        </div>
+      </div>
 
       <main id="content" class="content">
 
@@ -106,6 +111,8 @@
             <div class="ad-unit">
               <span class="ad-tag">AD</span>
               <span class="ad-placeholder-text">Overwolf Ad Unit</span>
+              <!-- Rendered by the Overwolf ads package under ow-electron; inert elsewhere -->
+              <owadview></owadview>
             </div>
             <div class="ad-cta">
               <span class="ad-cta-text">Remove ads and unlock gaze tracking</span>
@@ -230,7 +237,21 @@
             <div class="s-card">
               <h3 class="s-card__title" title="Pavlov is free thanks to ad support. Go Pro for ad-free coaching with Beam Eye Tracker.">Privacy &amp; Ads</h3>
               <p class="s-card__hint">Pavlov is free thanks to ad support. Go Pro for ad-free coaching with Beam Eye Tracker.</p>
-              <button id="btnCmpSettings" class="btn btn--ghost btn--sm" title="Manage your ad and data consent preferences">Privacy Settings</button>
+              <div class="inline-row">
+                <button id="btnCmpSettings" class="btn btn--ghost btn--sm" title="Manage your ad and data consent preferences">Privacy Settings</button>
+                <span id="planLabel" class="hint">Plan: Free</span>
+              </div>
+            </div>
+
+            <!-- Updates -->
+            <div class="s-card">
+              <h3 class="s-card__title" title="Pavlov keeps itself up to date. Updates download in the background; you choose when to restart.">Updates</h3>
+              <p class="s-card__hint">Updates download automatically. You decide when to restart.</p>
+              <div class="inline-row">
+                <button id="btnCheckUpdates" class="btn btn--ghost btn--sm" title="Check GitHub for a newer version of Pavlov right now">Check for Updates</button>
+                <span id="updateStatusLabel" class="hint">Up to date</span>
+              </div>
+              <p class="s-card__hint" style="margin-top:8px;">Version <span id="appVersionLabel">-</span></p>
             </div>
 
           </div>
@@ -262,8 +283,22 @@
     </div>
   </div>
 
+  <!-- Pro upgrade (mock entitlement until live subscriptions land) -->
+  <div id="proModal" class="modal" style="display:none;">
+    <div class="modal-bg"></div>
+    <div class="modal-box">
+      <h2>Pavlov Pro</h2>
+      <p>Real gaze tracking with Beam Eye Tracker, the full coaching stat line, and zero ads.</p>
+      <p class="hint">Try everything free for 7 days. No card needed.</p>
+      <div class="update-banner__actions" style="justify-content:center; margin-top:14px;">
+        <button id="btnStartTrial" class="btn btn--accent">Start Free Trial</button>
+        <button id="btnCloseProModal" class="btn btn--ghost">Maybe Later</button>
+      </div>
+    </div>
+  </div>
+
   <audio id="alertAudioEl" preload="auto"></audio>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script src="vendor/chart.umd.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
