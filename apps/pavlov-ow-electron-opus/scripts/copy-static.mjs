@@ -38,6 +38,16 @@ for (const [from, to] of Object.entries(imageMap)) {
   if (existsSync(s)) cpSync(s, resolve(dest, 'assets', to));
 }
 
+// Tray icons (branded, with status bubble) live next to the compiled main.
+const trayScriptDir = resolve(root, 'build', 'tray');
+const trayDest = resolve(root, 'dist', 'main', 'assets');
+mkdirSync(trayDest, { recursive: true });
+if (existsSync(trayScriptDir)) {
+  cpSync(trayScriptDir, trayDest, { recursive: true });
+} else {
+  console.warn('[copy-static] WARNING: build/tray icons missing');
+}
+
 // Bundle Chart.js locally -- the app must not load remote scripts.
 const chartSrc = resolve(root, 'node_modules', 'chart.js', 'dist', 'chart.umd.min.js');
 mkdirSync(resolve(dest, 'vendor'), { recursive: true });

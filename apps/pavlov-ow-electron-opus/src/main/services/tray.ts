@@ -1,37 +1,29 @@
 import { app, Tray, Menu, nativeImage, BrowserWindow } from 'electron';
+import * as path from 'path';
 import type { BeamStatus } from '../../shared/constants';
 import type { UpdaterState } from '../../shared/types';
 
-const ICON_SIZE = 16;
-
-function createTrayIcon(status: BeamStatus): Electron.NativeImage {
-  const canvas = Buffer.alloc(ICON_SIZE * ICON_SIZE * 4);
-
-  // Fill with brand cyan (#00D4FF)
-  for (let i = 0; i < ICON_SIZE * ICON_SIZE; i++) {
-    canvas[i * 4] = 0x00;     // R
-    canvas[i * 4 + 1] = 0xd4; // G
-    canvas[i * 4 + 2] = 0xff; // B
-    canvas[i * 4 + 3] = 0xff; // A
+// Branded Pavlov tray icons with a status bubble baked in (generated at
+// build time into dist/main/assets). NOTE: nativeImage.createFromBuffer
+// only decodes PNG/JPEG -- the old raw-RGBA buffer approach produced an
+// empty image and an invisible tray icon.
+function trayIconFor(status: BeamStatus): Electron.NativeImage {
+  const file =
+    status === 'tracking' ? 'tray-tracking.png' :
+    status === 'connecting' ? 'tray-connecting.png' :
+    'tray-off.png';
+  const img = nativeImage.createFromPath(path.join(__dirname, '..', 'assets', file));
+  if (img.isEmpty()) {
+    console.error(`[Tray] icon asset missing or unreadable: ${file}`);
   }
+  return img;
+}
 
-  // Status dot in bottom-right 4x4 corner
-  const dotColor =
-    status === 'tracking' ? [0x00, 0xe5, 0xa0] :
-    status === 'connecting' ? [0xff, 0xb7, 0x4d] :
-    [0xff, 0x52, 0x52];
-
-  for (let dy = ICON_SIZE - 4; dy < ICON_SIZE; dy++) {
-    for (let dx = ICON_SIZE - 4; dx < ICON_SIZE; dx++) {
-      const idx = (dy * ICON_SIZE + dx) * 4;
-      canvas[idx] = dotColor[0];
-      canvas[idx + 1] = dotColor[1];
-      canvas[idx + 2] = dotColor[2];
-      canvas[idx + 3] = 0xff;
-    }
-  }
-
-  return nativeImage.createFromBuffer(canvas, { width: ICON_SIZE, height: ICON_SIZE });
+function statusLabelFor(status: BeamStatus): string {
+  return status === 'tracking' ? 'Beam Eye Tracker: Tracking' :
+    status === 'connecting' ? 'Beam Eye Tracker: Connecting...' :
+    status === 'not_running' ? 'Beam Eye Tracker: Not Running' :
+    'Beam Eye Tracker: Not Installed';
 }
 
 export class TrayManager {
@@ -52,8 +44,8 @@ export class TrayManager {
 
   create(mainWindow: BrowserWindow): void {
     this.mainWindow = mainWindow;
-    this.tray = new Tray(createTrayIcon(this.status));
-    this.tray.setToolTip('Pavlov - Map Awareness Coach');
+    this.tray = new Tray(trayIconFor(this.status));
+    this.tray.setToolTip(`Pavlov - Map Awareness Coach\n${statusLabelFor(this.status)}`);
     this.updateMenu();
 
     this.tray.on('double-click', () => {
@@ -65,7 +57,8 @@ export class TrayManager {
   updateStatus(status: BeamStatus): void {
     this.status = status;
     if (this.tray) {
-      this.tray.setImage(createTrayIcon(status));
+      this.tray.setImage(trayIconFor(status));
+      this.tray.setToolTip(`Pavlov - Map Awareness Coach\n${statusLabelFor(status)}`);
       this.updateMenu();
     }
   }
@@ -79,11 +72,7 @@ export class TrayManager {
 
   private updateMenu(): void {
     if (!this.tray) return;
-    const statusLabel =
-      this.status === 'tracking' ? 'Beam: Tracking' :
-      this.status === 'connecting' ? 'Beam: Connecting...' :
-      this.status === 'not_running' ? 'Beam: Not Running' :
-      'Beam: Not Installed';
+    const statusLabel = statusLabelFor(this.status);
 
     const template: Electron.MenuItemConstructorOptions[] = [
       { label: 'Pavlov', enabled: false },

@@ -81,6 +81,20 @@ describe('Smoke Tests', () => {
     expect(script).toContain('alert.wav');
   });
 
+  it('branded icons exist: app ico + tray status variants (PNG, non-empty)', () => {
+    expect(fs.existsSync(path.join(ROOT, 'build', 'icon.ico'))).toBe(true);
+    for (const f of ['tray-tracking.png', 'tray-connecting.png', 'tray-off.png']) {
+      const p = path.join(ROOT, 'build', 'tray', f);
+      expect(fs.existsSync(p), `missing ${f}`).toBe(true);
+      const buf = fs.readFileSync(p);
+      expect(buf.length).toBeGreaterThan(100);
+      // PNG magic bytes -- tray icons must be encoded images, not raw buffers
+      expect(buf.subarray(0, 4).toString('hex')).toBe('89504e47');
+    }
+    const script = fs.readFileSync(path.join(ROOT, 'scripts', 'copy-static.mjs'), 'utf-8');
+    expect(script).toContain('tray');
+  });
+
   it('NO EM DASHES anywhere in app source or copy (SwissTropic hard rule)', () => {
     const roots = ['src', 'scripts', 'tests'];
     const offenders: string[] = [];

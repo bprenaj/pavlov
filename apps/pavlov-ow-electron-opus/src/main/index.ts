@@ -8,6 +8,7 @@ import {
   globalShortcut,
 } from 'electron';
 import * as path from 'path';
+import * as fs from 'fs';
 import { IPC } from './ipc';
 import {
   loadSettings,
@@ -92,6 +93,17 @@ function configureSession(settings: PavlovSettings): void {
   alertManager.configure(settings.alertModes, settings.volume, settings.customSoundPath);
 }
 
+/**
+ * Branded window/taskbar icon. The packaged exe carries build/icon.ico as a
+ * resource, but dev runs (and some taskbar contexts) use the window icon, so
+ * set it explicitly when the file is reachable.
+ */
+function getWindowIconPath(): string | undefined {
+  // Dev runs only; the packaged exe already embeds build/icon.ico.
+  const dev = path.join(__dirname, '..', '..', 'build', 'icon.ico');
+  return fs.existsSync(dev) ? dev : undefined;
+}
+
 function createMainWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: 960,
@@ -101,6 +113,7 @@ function createMainWindow(): BrowserWindow {
     frame: false,
     backgroundColor: '#0B1120',
     show: false,
+    icon: getWindowIconPath(),
     webPreferences: {
       preload: getPreloadPath(),
       contextIsolation: true,
@@ -476,6 +489,15 @@ async function bootstrap(): Promise<void> {
   const primaryDisplay = screen.getPrimaryDisplay();
   const { width, height } = primaryDisplay.size;
   beamBridge.start(width, height, app.getAppPath(), process.execPath);
+}
+
+// App identity: name in menus/notifications and the Windows AppUserModelID
+// that ties taskbar grouping and toasts to the installed shortcut. Setting
+// the AUMID without that shortcut (dev runs) makes the taskbar fall back to
+// the exe icon, so only set it when packaged.
+app.setName('Pavlov');
+if (app.isPackaged) {
+  app.setAppUserModelId('com.swisstropic.pavlov');
 }
 
 app.whenReady().then(bootstrap);
