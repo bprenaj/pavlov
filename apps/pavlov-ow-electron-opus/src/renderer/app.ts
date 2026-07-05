@@ -65,6 +65,7 @@ let historyRecords: SessionRecord[] = [];
 let chartInstance: { destroy: () => void } | null = null;
 let updateBannerDismissed = false;
 let updateCheckRequested = false;
+let selectedChartMetric = 'masScore';
 
 const DISCORD_URL = 'https://discord.gg/khk2dq8Bj3';
 const REDDIT_SHARE_BASE = 'https://www.reddit.com/r/leagueoflegends/submit';
@@ -88,18 +89,29 @@ const METRIC_RANGES: Record<string, { goodLo: number; goodHi: number; warnLo: nu
   alertFree:  { goodLo: 30, goodHi: 999, warnLo: 15, warnHi: 30, higherIsBetter: true },
 };
 
+// One metric plotted at a time (mixed units on one axis is unreadable);
+// the picker above the chart switches series.
 const CHART_METRICS = [
-  { key: 'masScore', label: 'MAS Score', color: '#7B61FF', width: 2.5, visible: true },
-  { key: 'glancesPerMin', label: 'Check rate', color: '#FF617C', width: 1.2, visible: false },
-  { key: 'avgGapS', label: 'Response time', color: '#FF61BD', width: 1.2, visible: false },
-  { key: 'timeOnMapPct', label: 'Map attention', color: '#61CBFF', width: 1.2, visible: false },
-  { key: 'avgGlanceDurationMs', label: 'Glance speed', color: '#BD61FF', width: 1.2, visible: false },
-  { key: 'durationS', label: 'Session duration', color: '#6189FF', width: 1.0, visible: false },
-  { key: 'glanceCount', label: 'Map glances', color: '#61FFF1', width: 1.0, visible: false },
-  { key: 'longestGapS', label: 'Longest blind', color: '#FF61FF', width: 1.0, visible: false },
-  { key: 'alertsTriggered', label: 'Tunnel alerts', color: '#61FFB0', width: 1.0, visible: false },
-  { key: 'alertFreeStreakS', label: 'Best streak', color: '#E5FF61', width: 1.0, visible: false },
+  { key: 'masScore', label: 'MAS', color: '#C8A246', unit: '' },
+  { key: 'glancesPerMin', label: 'Check rate', color: '#00D4FF', unit: '/min' },
+  { key: 'avgGapS', label: 'Response', color: '#FF617C', unit: 's' },
+  { key: 'timeOnMapPct', label: 'Attention', color: '#61CBFF', unit: '%' },
+  { key: 'avgGlanceDurationMs', label: 'Glance speed', color: '#BD61FF', unit: 'ms' },
+  { key: 'durationS', label: 'Duration', color: '#6189FF', unit: 's' },
+  { key: 'glanceCount', label: 'Glances', color: '#61FFF1', unit: '' },
+  { key: 'longestGapS', label: 'Longest blind', color: '#FF61FF', unit: 's' },
+  { key: 'alertsTriggered', label: 'Alerts', color: '#FFB74D', unit: '' },
+  { key: 'alertFreeStreakS', label: 'Best streak', color: '#00E5A0', unit: 's' },
 ];
+
+// Benchmark bars on the four primary KPI cards: value scaled onto a fixed
+// track whose green band marks the target zone (matches the static markup).
+const KPI_BENCH: Record<string, { barId: string; scaleMax: number }> = {
+  rate: { barId: 'benchRate', scaleMax: 10 },
+  avgGap: { barId: 'benchAvgGap', scaleMax: 20 },
+  mapTime: { barId: 'benchMapTime', scaleMax: 30 },
+  procSpeed: { barId: 'benchProcSpeed', scaleMax: 1500 },
+};
 
 function $(id: string) { return document.getElementById(id)!; }
 
@@ -250,6 +262,7 @@ function updateTrainingState(state: TrainingState): void {
     $('timerDisplay').classList.toggle('alert-active', state.alertActive);
     $('masValue').textContent = String(state.masScore);
     $('masBarFill').style.width = `${state.masScore}%`;
+    updateMasDelta(state.masScore);
 
     const m = state.metrics;
     setMetric('metricRate', m.glancesPerMin, 'rate');
@@ -264,9 +277,30 @@ function updateTrainingState(state: TrainingState): void {
   }
 }
 
+/** Live comparison against the previous session's MAS. */
+function updateMasDelta(masScore: number): void {
+  const el = $('masDelta');
+  const last = historyRecords.length > 0 ? historyRecords[historyRecords.length - 1].masScore : null;
+  if (last === null || masScore === 0) {
+    el.style.display = 'none';
+    return;
+  }
+  const delta = masScore - last;
+  el.style.display = '';
+  el.className = 'mas-delta ' + (delta >= 0 ? 'mas-delta--up' : 'mas-delta--down');
+  el.textContent = `${delta >= 0 ? '+' : ''}${delta} vs last session`;
+}
+
 function setMetric(elementId: string, value: number, metricKey: string): void {
   const el = $(elementId);
   el.textContent = String(value);
+
+  const bench = KPI_BENCH[metricKey];
+  if (bench) {
+    const pct = Math.min(100, Math.max(0, (value / bench.scaleMax) * 100));
+    $(bench.barId).style.width = `${pct}%`;
+  }
+
   const range = METRIC_RANGES[metricKey];
   if (!range) return;
   el.className = 'metric-value';
@@ -291,9 +325,47 @@ function masColor(score: number): string {
   return 'history-item__mas--bad';
 }
 
+function formatDuration(totalS: number): string {
+  const h = Math.floor(totalS / 3600);
+  const m = Math.round((totalS % 3600) / 60);
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+function renderSummary(): void {
+  const has = historyRecords.length > 0;
+  $('historySummary').style.display = has ? '' : 'none';
+  if (!has) return;
+  const last5 = historyRecords.slice(-5);
+  $('sumSessions').textContent = String(historyRecords.length);
+  $('sumBestMas').textContent = String(Math.max(...historyRecords.map((r) => r.masScore)));
+  $('sumAvgMas').textContent = String(
+    Math.round(last5.reduce((a, r) => a + r.masScore, 0) / last5.length),
+  );
+  $('sumTime').textContent = formatDuration(historyRecords.reduce((a, r) => a + r.durationS, 0));
+}
+
+function renderMetricPicker(): void {
+  const picker = $('chartMetricPicker');
+  picker.innerHTML = '';
+  for (const m of CHART_METRICS) {
+    const btn = document.createElement('button');
+    btn.className = 'chart-pill' + (m.key === selectedChartMetric ? ' active' : '');
+    btn.textContent = m.label;
+    btn.dataset.key = m.key;
+    btn.title = m.unit ? `${m.label} (${m.unit}) per session` : `${m.label} per session`;
+    btn.addEventListener('click', () => {
+      selectedChartMetric = m.key;
+      renderMetricPicker();
+      renderChart();
+    });
+    picker.appendChild(btn);
+  }
+}
+
 function renderHistory(): void {
   $('historyEmpty').style.display = historyRecords.length === 0 ? '' : 'none';
   $('chartWrap').style.display = historyRecords.length > 1 ? '' : 'none';
+  renderSummary();
   const listEl = $('historyList');
   listEl.innerHTML = historyRecords.slice().reverse().slice(0, 50).map((r) => {
     const date = new Date(r.timestamp).toLocaleString();
@@ -307,43 +379,63 @@ function renderHistory(): void {
       </div>
     </div>`;
   }).join('');
-  if (historyRecords.length > 1) renderChart();
+  if (historyRecords.length > 1) {
+    renderMetricPicker();
+    renderChart();
+  }
 }
 
 function renderChart(): void {
   const canvas = $('historyChart') as HTMLCanvasElement;
   if (chartInstance) chartInstance.destroy();
+  const metric = CHART_METRICS.find((m) => m.key === selectedChartMetric) ?? CHART_METRICS[0];
   const sorted = [...historyRecords].sort((a, b) => a.timestamp - b.timestamp);
   const labels = sorted.map((r) => new Date(r.timestamp).toLocaleDateString());
+  const data = sorted.map((r) => (r as unknown as Record<string, number>)[metric.key]);
   const useMarkers = sorted.length < 30;
-
-  const datasets = CHART_METRICS.map((m) => ({
-    label: m.label,
-    data: sorted.map((r) => (r as unknown as Record<string, number>)[m.key]),
-    borderColor: m.color,
-    backgroundColor: m.color + '18',
-    borderWidth: m.width,
-    tension: 0.3,
-    hidden: !m.visible,
-    pointRadius: useMarkers ? 4 : 0,
-    pointBackgroundColor: m.color,
-  }));
 
   // @ts-expect-error Chart is a global from the bundled vendor/chart.umd.min.js
   chartInstance = new Chart(canvas, {
     type: 'line',
-    data: { labels, datasets },
+    data: {
+      labels,
+      datasets: [{
+        label: metric.label,
+        data,
+        borderColor: metric.color,
+        backgroundColor: metric.color + '22',
+        borderWidth: 2,
+        tension: 0.3,
+        fill: true,
+        pointRadius: useMarkers ? 4 : 0,
+        pointBackgroundColor: metric.color,
+      }],
+    },
     options: {
       responsive: true, maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: {
-          labels: { color: '#8899AA', usePointStyle: true, pointStyle: 'circle', boxWidth: 8 },
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx: { parsed: { y: number } }) =>
+              ` ${metric.label}: ${ctx.parsed.y}${metric.unit}`,
+          },
         },
       },
       scales: {
         x: { ticks: { color: '#5C6B7A', maxTicksLimit: 12 }, grid: { color: '#1A2332' } },
-        y: { ticks: { color: '#5C6B7A' }, grid: { color: '#1A2332' } },
+        y: {
+          beginAtZero: true,
+          ticks: { color: '#5C6B7A' },
+          grid: { color: '#1A2332' },
+          title: {
+            display: !!metric.unit,
+            text: metric.unit,
+            color: '#5C6B7A',
+            font: { size: 10 },
+          },
+        },
       },
     },
   });

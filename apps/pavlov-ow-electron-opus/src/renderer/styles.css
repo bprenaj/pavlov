@@ -133,18 +133,68 @@ html, body {
 .timer.alert-active { color: var(--danger); animation: blink 0.5s infinite; }
 .training-hint { font-size: 12px; color: var(--text-2); font-style: italic; }
 
-/* ─── Metrics grid ─── */
-.metrics-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 16px; }
+/* ─── Coach hero header ─── */
+.coach-hero {
+  position: relative; height: 108px; border-radius: var(--radius);
+  overflow: hidden; margin-bottom: 16px; background: var(--surface);
+}
+.coach-hero__img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; object-position: center 24%;
+}
+.coach-hero__scrim {
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, rgba(10,17,31,0.96) 0%, rgba(10,17,31,0.72) 42%, rgba(10,17,31,0.12) 100%);
+}
+.coach-hero__text { position: relative; padding: 24px 22px; }
+.coach-hero__title {
+  font-family: 'Chakra Petch', sans-serif; font-size: 22px; font-weight: 700;
+  color: var(--text-0); letter-spacing: 0.5px;
+}
+.coach-hero__sub { font-size: 12px; color: var(--text-1); margin-top: 4px; }
+
+/* ─── Metrics: primary KPI cards + secondary chips ─── */
+.metrics-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 10px; }
+.metrics-chips { display: grid; grid-template-columns: repeat(5,1fr); gap: 10px; margin-bottom: 16px; }
 .mc {
   padding: 12px 14px; background: var(--surface); border-radius: var(--radius);
   display: flex; flex-direction: column; cursor: help;
 }
+.mc--kpi { border: 1px solid transparent; }
+.mc--kpi:hover { border-color: var(--line); }
+.mc--chip { padding: 8px 12px; background: rgba(18,31,53,0.6); }
+.mc--chip .metric-value { font-size: 16px; }
 .mc-label { font-size: 10px; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+.mc-value-row { display: flex; align-items: baseline; gap: 4px; }
 .metric-value { font-family: 'Chakra Petch', sans-serif; font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .mc-unit { font-size: 10px; color: var(--text-2); }
 .metric-value--good { color: var(--good); }
 .metric-value--warn { color: var(--warn); }
 .metric-value--bad { color: var(--bad); }
+
+/* Benchmark bar: where you are vs the target band */
+.kpi-bench { margin-top: 8px; }
+.kpi-bench__track {
+  position: relative; height: 5px; border-radius: 3px; background: var(--bg-1); overflow: hidden;
+}
+.kpi-bench__target {
+  position: absolute; top: 0; bottom: 0;
+  background: rgba(0,229,160,0.22); border-radius: 2px;
+}
+.kpi-bench__fill {
+  position: relative; height: 100%; width: 0%;
+  background: var(--accent); border-radius: 3px; transition: width 0.3s;
+}
+.kpi-bench__label { display: block; font-size: 9px; color: var(--text-2); margin-top: 4px; }
+
+/* ─── MAS delta chip ─── */
+.mas-delta {
+  font-family: 'Chakra Petch', sans-serif; font-size: 13px; font-weight: 700;
+  padding: 4px 10px; border-radius: 12px; background: var(--bg-1); color: var(--text-1);
+  white-space: nowrap;
+}
+.mas-delta--up { color: var(--success); }
+.mas-delta--down { color: var(--danger); }
 
 /* ─── Info bar ─── */
 .info-bar {
@@ -248,8 +298,28 @@ html, body {
 
 /* ─── History ─── */
 .empty-state { text-align: center; padding: 40px; color: var(--text-2); }
+
+.history-summary { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 16px; }
+.sum-stat {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 14px 10px; background: var(--surface); border-radius: var(--radius); cursor: help;
+}
+.sum-stat__value { font-family: 'Chakra Petch', sans-serif; font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.sum-stat__value--gold { color: var(--gold); }
+.sum-stat__label { font-size: 10px; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.5px; }
+
 .chart-wrap { background: var(--surface); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
-.history-chart { width: 100%; max-height: 300px; }
+.chart-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+.chart-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-2); }
+.chart-picker { display: flex; gap: 4px; flex-wrap: wrap; }
+.chart-pill {
+  padding: 3px 10px; border-radius: 10px; border: 1px solid var(--line);
+  background: transparent; color: var(--text-2); font-size: 11px; font-weight: 600;
+  cursor: pointer; font-family: inherit; transition: all 0.15s;
+}
+.chart-pill:hover { color: var(--text-0); border-color: #455978; }
+.chart-pill.active { background: var(--accent); border-color: var(--accent); color: var(--bg-0); font-weight: 700; }
+.history-chart { width: 100%; max-height: 260px; }
 .history-list { display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; }
 .history-item {
   display: grid; grid-template-columns: 48px 1fr auto; align-items: center; gap: 12px;

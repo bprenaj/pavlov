@@ -60,6 +60,15 @@
 
         <!-- ═══════ COACH PAGE ═══════ -->
         <section id="pageCoach" class="page page--active">
+          <div id="coachHero" class="coach-hero">
+            <img src="assets/pavlov-header.jpg" alt="" class="coach-hero__img">
+            <div class="coach-hero__scrim"></div>
+            <div class="coach-hero__text">
+              <h2 class="coach-hero__title">Map Awareness Coach</h2>
+              <p class="coach-hero__sub">Train the reflex. Check the map. Win more.</p>
+            </div>
+          </div>
+
           <div id="regionGate" class="region-gate">
             <img src="assets/pavlov-main.jpg" alt="Pavlov" class="gate-img">
             <h2>Welcome to Pavlov</h2>
@@ -77,6 +86,7 @@
                 <p class="mas-sublabel">Map Awareness Score</p>
                 <div class="mas-bar"><div id="masBarFill" class="mas-bar__fill"></div></div>
               </div>
+              <span id="masDelta" class="mas-delta" style="display:none;"></span>
             </div>
 
             <div class="training-row">
@@ -90,15 +100,46 @@
             </div>
 
             <div id="metricsGrid" class="metrics-grid">
-              <div class="mc" title="How many times per minute you check the minimap.&#10;This is the single strongest predictor of map awareness.&#10;Pro players average 6-8 glances per minute."><span class="mc-label">Check Rate</span><span id="metricRate" class="metric-value">0.0</span><span class="mc-unit">/min</span></div>
-              <div class="mc" title="Average number of seconds between consecutive map glances.&#10;Lower is better. If this exceeds your timeout, you trigger alerts."><span class="mc-label">Avg Response</span><span id="metricAvgGap" class="metric-value">0.0</span><span class="mc-unit">s</span></div>
-              <div class="mc" title="Percentage of the session your eyes spent on the minimap.&#10;Healthy range is 8-15%. Too low = ignoring. Too high = staring."><span class="mc-label">Map Attention</span><span id="metricMapTime" class="metric-value">0.0</span><span class="mc-unit">%</span></div>
-              <div class="mc" title="Average duration of each minimap glance in milliseconds.&#10;Shorter glances = faster info extraction.&#10;Pro players extract map info in very brief glances."><span class="mc-label">Glance Speed</span><span id="metricProcSpeed" class="metric-value">0</span><span class="mc-unit">ms</span></div>
-              <div class="mc" title="Total time elapsed since you pressed Start Training."><span class="mc-label">Duration</span><span id="metricDuration" class="metric-value">0</span><span class="mc-unit">s</span></div>
-              <div class="mc" title="Total number of times your eyes entered the minimap region.&#10;Each gaze entry counts as one glance."><span class="mc-label">Glances</span><span id="metricGlances" class="metric-value">0</span><span class="mc-unit"></span></div>
-              <div class="mc" title="The single longest period you went without checking the map.&#10;This is your worst tunnel vision moment. Keep this low."><span class="mc-label">Longest Blind</span><span id="metricLongestGap" class="metric-value">0.0</span><span class="mc-unit">s</span></div>
-              <div class="mc" title="Number of times the alert fired because you exceeded the timeout.&#10;Fewer alerts = better awareness."><span class="mc-label">Tunnel Alerts</span><span id="metricAlerts" class="metric-value">0</span><span class="mc-unit"></span></div>
-              <div class="mc" title="The longest period where you checked the map frequently enough&#10;that the alert never fired. Longer = more consistent."><span class="mc-label">Best Streak</span><span id="metricAlertFree" class="metric-value">0.0</span><span class="mc-unit">s</span></div>
+              <div class="mc mc--kpi" title="How many times per minute you check the minimap.&#10;This is the single strongest predictor of map awareness.&#10;Pro players average 6-8 glances per minute.">
+                <span class="mc-label">Check Rate</span>
+                <div class="mc-value-row"><span id="metricRate" class="metric-value">0.0</span><span class="mc-unit">/min</span></div>
+                <div class="kpi-bench">
+                  <div class="kpi-bench__track"><div class="kpi-bench__target" style="left:60%; width:20%;"></div><div id="benchRate" class="kpi-bench__fill"></div></div>
+                  <span class="kpi-bench__label">Pro: 6-8/min</span>
+                </div>
+              </div>
+              <div class="mc mc--kpi" title="Average number of seconds between consecutive map glances.&#10;Lower is better. If this exceeds your timeout, you trigger alerts.">
+                <span class="mc-label">Avg Response</span>
+                <div class="mc-value-row"><span id="metricAvgGap" class="metric-value">0.0</span><span class="mc-unit">s</span></div>
+                <div class="kpi-bench">
+                  <div class="kpi-bench__track"><div class="kpi-bench__target" style="left:0%; width:40%;"></div><div id="benchAvgGap" class="kpi-bench__fill"></div></div>
+                  <span class="kpi-bench__label">Target: under 8s</span>
+                </div>
+              </div>
+              <div class="mc mc--kpi" title="Percentage of the session your eyes spent on the minimap.&#10;Healthy range is 8-15%. Too low = ignoring. Too high = staring.">
+                <span class="mc-label">Map Attention</span>
+                <div class="mc-value-row"><span id="metricMapTime" class="metric-value">0.0</span><span class="mc-unit">%</span></div>
+                <div class="kpi-bench">
+                  <div class="kpi-bench__track"><div class="kpi-bench__target" style="left:26.7%; width:23.3%;"></div><div id="benchMapTime" class="kpi-bench__fill"></div></div>
+                  <span class="kpi-bench__label">Healthy: 8-15%</span>
+                </div>
+              </div>
+              <div class="mc mc--kpi" title="Average duration of each minimap glance in milliseconds.&#10;Shorter glances = faster info extraction.&#10;Pro players extract map info in very brief glances.">
+                <span class="mc-label">Glance Speed</span>
+                <div class="mc-value-row"><span id="metricProcSpeed" class="metric-value">0</span><span class="mc-unit">ms</span></div>
+                <div class="kpi-bench">
+                  <div class="kpi-bench__track"><div class="kpi-bench__target" style="left:0%; width:33.3%;"></div><div id="benchProcSpeed" class="kpi-bench__fill"></div></div>
+                  <span class="kpi-bench__label">Pro: under 500ms</span>
+                </div>
+              </div>
+            </div>
+
+            <div id="metricsChips" class="metrics-chips">
+              <div class="mc mc--chip" title="Total time elapsed since you pressed Start Training."><span class="mc-label">Duration</span><div class="mc-value-row"><span id="metricDuration" class="metric-value">0</span><span class="mc-unit">s</span></div></div>
+              <div class="mc mc--chip" title="Total number of times your eyes entered the minimap region.&#10;Each gaze entry counts as one glance."><span class="mc-label">Glances</span><div class="mc-value-row"><span id="metricGlances" class="metric-value">0</span><span class="mc-unit"></span></div></div>
+              <div class="mc mc--chip" title="The single longest period you went without checking the map.&#10;This is your worst tunnel vision moment. Keep this low."><span class="mc-label">Longest Blind</span><div class="mc-value-row"><span id="metricLongestGap" class="metric-value">0.0</span><span class="mc-unit">s</span></div></div>
+              <div class="mc mc--chip" title="Number of times the alert fired because you exceeded the timeout.&#10;Fewer alerts = better awareness."><span class="mc-label">Tunnel Alerts</span><div class="mc-value-row"><span id="metricAlerts" class="metric-value">0</span><span class="mc-unit"></span></div></div>
+              <div class="mc mc--chip" title="The longest period where you checked the map frequently enough&#10;that the alert never fired. Longer = more consistent."><span class="mc-label">Best Streak</span><div class="mc-value-row"><span id="metricAlertFree" class="metric-value">0.0</span><span class="mc-unit">s</span></div></div>
             </div>
 
             <div class="info-bar">
@@ -125,7 +166,19 @@
         <section id="pageHistory" class="page">
           <h2 class="page-title">Session History</h2>
           <div id="historyEmpty" class="empty-state"><p>No sessions yet. Complete a training session to see your progress here.</p></div>
+
+          <div id="historySummary" class="history-summary" style="display:none;">
+            <div class="sum-stat" title="Total completed training sessions."><span id="sumSessions" class="sum-stat__value">0</span><span class="sum-stat__label">Sessions</span></div>
+            <div class="sum-stat" title="Your highest Map Awareness Score so far."><span id="sumBestMas" class="sum-stat__value sum-stat__value--gold">0</span><span class="sum-stat__label">Best MAS</span></div>
+            <div class="sum-stat" title="Average Map Awareness Score across your last 5 sessions."><span id="sumAvgMas" class="sum-stat__value">0</span><span class="sum-stat__label">Avg MAS (last 5)</span></div>
+            <div class="sum-stat" title="Total time spent training across all sessions."><span id="sumTime" class="sum-stat__value">0m</span><span class="sum-stat__label">Time Trained</span></div>
+          </div>
+
           <div class="chart-wrap" style="display:none;" id="chartWrap">
+            <div class="chart-head">
+              <span class="chart-title">Trend over sessions</span>
+              <div id="chartMetricPicker" class="chart-picker"></div>
+            </div>
             <canvas id="historyChart" class="history-chart"></canvas>
           </div>
           <div id="historyList" class="history-list"></div>

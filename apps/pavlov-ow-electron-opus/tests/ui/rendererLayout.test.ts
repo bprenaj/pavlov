@@ -69,6 +69,46 @@ describe('Renderer Layout', () => {
     expect(cells.length).toBe(9);
   });
 
+  it('coach page has a hero header with artwork', () => {
+    const hero = document.getElementById('coachHero');
+    expect(hero).not.toBeNull();
+    expect(hero!.querySelector('img.coach-hero__img')).not.toBeNull();
+    expect(hero!.querySelector('.coach-hero__title')).not.toBeNull();
+  });
+
+  it('splits metrics into 4 primary KPI cards and 5 secondary chips', () => {
+    expect(document.querySelectorAll('#metricsGrid .mc--kpi').length).toBe(4);
+    expect(document.querySelectorAll('#metricsChips .mc--chip').length).toBe(5);
+  });
+
+  it('primary KPI cards each show a benchmark bar with a target band', () => {
+    const benches = document.querySelectorAll('#metricsGrid .kpi-bench');
+    expect(benches.length).toBe(4);
+    benches.forEach((b) => {
+      expect(b.querySelector('.kpi-bench__target')).not.toBeNull();
+      expect(b.querySelector('.kpi-bench__fill')).not.toBeNull();
+      expect(b.querySelector('.kpi-bench__label')?.textContent?.length).toBeGreaterThan(0);
+    });
+  });
+
+  it('MAS card has a session-over-session delta chip', () => {
+    expect(document.getElementById('masDelta')).not.toBeNull();
+  });
+
+  it('history page has a 4-stat summary strip', () => {
+    const summary = document.getElementById('historySummary');
+    expect(summary).not.toBeNull();
+    expect(summary!.querySelectorAll('.sum-stat').length).toBe(4);
+    expect(document.getElementById('sumSessions')).not.toBeNull();
+    expect(document.getElementById('sumBestMas')).not.toBeNull();
+    expect(document.getElementById('sumAvgMas')).not.toBeNull();
+    expect(document.getElementById('sumTime')).not.toBeNull();
+  });
+
+  it('history chart has a metric picker container', () => {
+    expect(document.getElementById('chartMetricPicker')).not.toBeNull();
+  });
+
   it('all metric cells have tooltips', () => {
     const cells = document.querySelectorAll('.mc');
     cells.forEach((cell) => {

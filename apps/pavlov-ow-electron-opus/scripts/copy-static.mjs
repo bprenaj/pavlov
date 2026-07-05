@@ -29,7 +29,8 @@ if (existsSync(assetDir)) {
 
 const imageMap = {
   "Pavlov's Bell - Main Image.jpg": 'pavlov-main.jpg',
-  "Pavlov's Bell - Example image in header of overwolf.jpg": 'pavlov-header.jpg',
+  // Pre-cropped: character + circuit art only, no baked-in store text
+  'pavlov-header-cropped.jpg': 'pavlov-header.jpg',
 };
 
 for (const [from, to] of Object.entries(imageMap)) {
