@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import {
   UPDATE_FIRST_CHECK_DELAY_MS,
   UPDATE_CHECK_INTERVAL_MS,
@@ -24,6 +26,39 @@ export interface AutoUpdaterLike {
   on(event: string, listener: (...args: never[]) => void): unknown;
   checkForUpdates(): Promise<unknown>;
   quitAndInstall(isSilent?: boolean, isForceRunAfter?: boolean): void;
+  setFeedURL?(options: Record<string, unknown>): void;
+}
+
+/**
+ * Private-repo phase support (same scheme as There Is No Mouse): a GitHub
+ * fine-grained PAT in <userData>/update-token.txt authenticates release
+ * lookups. No token file = anonymous checks (correct for public repos).
+ * When a private repo goes public, delete the token file; no code change.
+ */
+export function readUpdateToken(userDataDir: string): string | null {
+  try {
+    const token = fs.readFileSync(path.join(userDataDir, 'update-token.txt'), 'utf8').trim();
+    return token || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Owner/repo from the packaged resources/app-update.yml. Do NOT read
+ * package.json build.publish at runtime: electron-builder strips the
+ * "build" key from the packaged app.
+ */
+export function readFeedConfig(resourcesPath: string): { owner: string; repo: string } | null {
+  try {
+    const raw = fs.readFileSync(path.join(resourcesPath, 'app-update.yml'), 'utf8');
+    const owner = /^owner:\s*(.+)$/m.exec(raw);
+    const repo = /^repo:\s*(.+)$/m.exec(raw);
+    if (owner && repo) return { owner: owner[1].trim(), repo: repo[1].trim() };
+  } catch {
+    /* fall through */
+  }
+  return null;
 }
 
 export interface UpdaterOptions {
@@ -33,6 +68,9 @@ export interface UpdaterOptions {
   getAutoUpdater: () => AutoUpdaterLike;
   /** called whenever state changes, e.g. push to renderer + tray */
   onStateChange: (state: UpdaterState) => void;
+  /** private-repo phase seams; both default to null (anonymous feed) */
+  getToken?: () => string | null;
+  getFeed?: () => { owner: string; repo: string } | null;
   /** scheduling seams, default to real timers */
   setTimeoutFn?: typeof setTimeout;
   setIntervalFn?: typeof setInterval;
@@ -68,6 +106,23 @@ export class UpdaterService {
     this.autoUpdater = updater;
     updater.autoDownload = true;
     updater.autoInstallOnAppQuit = true;
+
+    const token = opts.getToken?.() ?? null;
+    if (token && updater.setFeedURL) {
+      const feed = opts.getFeed?.() ?? null;
+      if (feed) {
+        updater.setFeedURL({
+          provider: 'github',
+          owner: feed.owner,
+          repo: feed.repo,
+          private: true,
+          token,
+        });
+        console.log(`[Updater] Authenticated feed (private repo ${feed.owner}/${feed.repo})`);
+      } else {
+        console.error('[Updater] update token present but app-update.yml unreadable; using anonymous feed');
+      }
+    }
     updater.logger = {
       info: (m: unknown) => console.log('[Updater]', m),
       warn: (m: unknown) => console.log('[Updater][warn]', m),

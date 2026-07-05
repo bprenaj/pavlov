@@ -26,7 +26,7 @@ import { SessionEngine } from './services/sessionEngine';
 import { AlertManager } from './services/alertManager';
 import { IrlWebhook } from './services/irlWebhook';
 import { TrayManager } from './services/tray';
-import { UpdaterService } from './services/updater';
+import { UpdaterService, readUpdateToken, readFeedConfig } from './services/updater';
 import { createOverlayWindow } from './services/overlayFactory';
 import { getPreset, presetToRect } from '../shared/gamePresets';
 import type { EntitlementTier, TrainingMode } from '../shared/constants';
@@ -462,6 +462,10 @@ function initUpdater(): void {
       const { autoUpdater } = require('electron-updater');
       return autoUpdater;
     },
+    // Private-repo phase (no-op while the repo is public): PAT in
+    // userData/update-token.txt authenticates the release feed.
+    getToken: () => readUpdateToken(app.getPath('userData')),
+    getFeed: () => readFeedConfig(process.resourcesPath),
     onStateChange: (state) => {
       mainWindow?.webContents.send(IPC.ON_UPDATER_STATE, state);
       trayManager.updateUpdaterState(state);
