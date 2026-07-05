@@ -36,6 +36,7 @@ export interface PavlovSettings {
   irlWebhookUrl: string;
   firstRun: boolean;
   trainingMode: TrainingMode;
+  analyticsOptOut: boolean;
 }
 
 export interface SessionMetrics {
@@ -99,6 +100,7 @@ export interface BootstrapPayload {
   history: SessionRecord[];
   appVersion: string;
   updater: UpdaterState;
+  installId: string;
 }
 
 export interface PavlovApi {
@@ -118,6 +120,8 @@ export interface PavlovApi {
   applyPreset(key: string): Promise<PavlovSettings>;
   checkForUpdates(): Promise<void>;
   installUpdate(): Promise<void>;
+  track(event: string, props?: Record<string, unknown>): void;
+  setAnalyticsOptOut(optOut: boolean): Promise<void>;
   onState(cb: (state: TrainingState) => void): void;
   onBeamStatus(cb: (status: BeamStatus) => void): void;
   onSessionComplete(cb: (record: SessionRecord) => void): void;

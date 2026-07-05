@@ -15,6 +15,8 @@ export const IPC = {
   APPLY_PRESET: 'pavlov:applyPreset',
   UPDATER_CHECK: 'pavlov:updaterCheck',
   UPDATER_INSTALL: 'pavlov:updaterInstall',
+  TRACK_EVENT: 'pavlov:trackEvent',
+  SET_ANALYTICS_OPTOUT: 'pavlov:setAnalyticsOptOut',
 
   // Main -> Renderer push events
   ON_STATE: 'pavlov:onState',

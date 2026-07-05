@@ -31,6 +31,7 @@ export const PavlovSettingsSchema = z.object({
   irlWebhookUrl: z.string().default(''),
   firstRun: z.boolean().default(true),
   trainingMode: TrainingModeSchema.default('free'),
+  analyticsOptOut: z.boolean().default(false),
 });
 
 export const SessionRecordSchema = z.object({

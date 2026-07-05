@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import Store from 'electron-store';
 import { safeParseSettings, safeParseSessionRecords } from '../../shared/schemas';
 import type { PavlovSettings, SessionRecord } from '../../shared/types';
@@ -46,6 +47,27 @@ export function loadEntitlementTier(): string | null {
 
 export function saveEntitlementTier(tier: string): void {
   store.set('entitlementTier', tier);
+}
+
+/**
+ * Stable anonymous install id (UUID v4), generated once on first run. Used as
+ * the analytics distinct-id. Not tied to any personal data.
+ */
+export function getInstallId(): string {
+  const existing = store.get('installId');
+  if (typeof existing === 'string' && existing.length > 0) return existing;
+  const id = randomUUID();
+  store.set('installId', id);
+  return id;
+}
+
+export function loadLastVersion(): string | null {
+  const value = store.get('lastVersion');
+  return typeof value === 'string' ? value : null;
+}
+
+export function saveLastVersion(version: string): void {
+  store.set('lastVersion', version);
 }
 
 export function getStorePath(): string {

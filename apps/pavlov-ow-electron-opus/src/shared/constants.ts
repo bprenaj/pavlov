@@ -40,6 +40,46 @@ export const MAS_MAX_GLANCE_MS = 800;
 export const MAS_MIN_GLANCE_MS = 200;
 export const MAS_MAX_STD_DEV_S = 5;
 
+// Analytics: strict allowlist of event names. Anything not here is dropped
+// before it reaches PostHog (defense against accidental PII-shaped events).
+export const ANALYTICS_EVENTS = [
+  'app_opened',
+  'onboarding_completed',
+  'region_selected',
+  'training_started',
+  'training_stopped',
+  'session_complete',
+  'mode_switched',
+  'trial_started',
+  'upgrade_clicked',
+  'entitlement_set',
+  'preset_applied',
+  'update_installed',
+  'beam_status_changed',
+] as const;
+export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[number];
+
+// Only these property keys may ever leave the machine. The sanitizer strips
+// everything else, so gaze coordinates, minimap rects, file paths, and
+// webhook URLs can never be sent even if passed by mistake.
+export const ANALYTICS_SAFE_PROPS = [
+  'masScore',
+  'glancesPerMin',
+  'avgGapS',
+  'timeOnMapPct',
+  'avgGlanceDurationMs',
+  'durationBucket',
+  'gamePreset',
+  'trainingMode',
+  'entitlementTier',
+  'alertMode',
+  'beamStatus',
+  'appVersion',
+  'osPlatform',
+  'onboardingStep',
+] as const;
+export type AnalyticsSafeProp = (typeof ANALYTICS_SAFE_PROPS)[number];
+
 export type BeamStatus = 'not_installed' | 'not_running' | 'connecting' | 'tracking';
 export type EntitlementTier = 'free' | 'trial' | 'paid';
 export type AlertMode = 'silent' | 'visual' | 'audio' | 'irl';

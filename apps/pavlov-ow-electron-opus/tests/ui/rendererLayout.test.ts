@@ -212,6 +212,14 @@ describe('Renderer Layout', () => {
     expect(document.getElementById('planLabel')).not.toBeNull();
   });
 
+  it('has an anonymous-usage-data opt-out toggle', () => {
+    const toggle = document.getElementById('settingAnalytics') as HTMLInputElement;
+    expect(toggle).not.toBeNull();
+    expect(toggle.type).toBe('checkbox');
+    // Opt-out model: checked (sending) by default.
+    expect(toggle.checked).toBe(true);
+  });
+
   it('ad banner contains the Overwolf owadview element', () => {
     expect(document.querySelector('#adBanner owadview')).not.toBeNull();
   });

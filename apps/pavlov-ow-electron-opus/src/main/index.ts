@@ -18,6 +18,9 @@ import {
   clearHistory,
   loadEntitlementTier,
   saveEntitlementTier,
+  getInstallId,
+  loadLastVersion,
+  saveLastVersion,
 } from './services/store';
 import { getEntitlement, setEntitlement, isPaid, initEntitlement } from './services/entitlement';
 import { migrateLegacyData } from './services/migration';
@@ -27,8 +30,10 @@ import { AlertManager } from './services/alertManager';
 import { IrlWebhook } from './services/irlWebhook';
 import { TrayManager } from './services/tray';
 import { UpdaterService } from './services/updater';
+import { AnalyticsService } from './services/analytics';
 import { createOverlayWindow } from './services/overlayFactory';
 import { getPreset, presetToRect } from '../shared/gamePresets';
+import { POSTHOG_KEY, POSTHOG_HOST, isAnalyticsConfigured } from '../shared/analyticsConfig';
 import type { EntitlementTier, TrainingMode } from '../shared/constants';
 import type { MinimapRect, PavlovSettings } from '../shared/types';
 
@@ -43,6 +48,7 @@ const sessionEngine = new SessionEngine();
 const irlWebhook = new IrlWebhook();
 const trayManager = new TrayManager();
 const updater = new UpdaterService();
+const analytics = new AnalyticsService();
 
 const alertManager = new AlertManager({
   playAudio: (soundPath, volume) => {
@@ -264,6 +270,24 @@ function createRegionOverlay(): Promise<MinimapRect | null> {
   });
 }
 
+function cmpRequired(): boolean {
+  try {
+    const owElectron = require('@overwolf/ow-electron');
+    return owElectron?.isCMPRequired?.() ?? false;
+  } catch {
+    return false; // not running under ow-electron
+  }
+}
+
+/** Static props attached to every analytics event. */
+function analyticsBaseProps() {
+  return {
+    appVersion: app.getVersion(),
+    osPlatform: process.platform,
+    entitlementTier: getEntitlement(),
+  };
+}
+
 function isMinimapRect(value: unknown): value is MinimapRect {
   if (!value || typeof value !== 'object') return false;
   const r = value as Record<string, unknown>;
@@ -283,6 +307,7 @@ function registerIpcHandlers(): void {
     history: loadHistory(),
     appVersion: app.getVersion(),
     updater: updater.getState(),
+    installId: getInstallId(),
   }));
 
   ipcMain.handle(IPC.PATCH_SETTINGS, (_e, patch: Partial<PavlovSettings>) => {
@@ -339,13 +364,15 @@ function registerIpcHandlers(): void {
     clearHistory();
   });
 
-  ipcMain.handle(IPC.CHECK_CMP_REQUIRED, () => {
-    try {
-      const owElectron = require('@overwolf/ow-electron');
-      return owElectron?.isCMPRequired?.() ?? false;
-    } catch {
-      return false; // not running under ow-electron
-    }
+  ipcMain.handle(IPC.CHECK_CMP_REQUIRED, () => cmpRequired());
+
+  ipcMain.on(IPC.TRACK_EVENT, (_e, event: string, props: Record<string, unknown>) => {
+    analytics.capture(event, props);
+  });
+
+  ipcMain.handle(IPC.SET_ANALYTICS_OPTOUT, (_e, optOut: boolean) => {
+    patchSettings({ analyticsOptOut: optOut });
+    analytics.setOptedOut(optOut);
   });
 
   ipcMain.handle(IPC.OPEN_CMP_WINDOW, () => {
@@ -430,6 +457,16 @@ function wireEvents(): void {
     if (record && record.durationS >= 10) {
       addSessionRecord(record);
       mainWindow?.webContents.send(IPC.ON_SESSION_COMPLETE, record);
+      // Only aggregated, non-identifying metrics -- never gaze or region rect.
+      analytics.capture('session_complete', {
+        masScore: record.masScore,
+        glancesPerMin: record.glancesPerMin,
+        avgGapS: record.avgGapS,
+        timeOnMapPct: record.timeOnMapPct,
+        avgGlanceDurationMs: record.avgGlanceDurationMs,
+        durationBucket: durationBucket(record.durationS),
+        trainingMode: sessionEngine.isRunning() ? 'paid' : loadSettings().trainingMode,
+      });
     }
   });
 
@@ -441,6 +478,7 @@ function wireEvents(): void {
   beamBridge.onStatus = (status) => {
     mainWindow?.webContents.send(IPC.ON_BEAM_STATUS, status);
     trayManager.updateStatus(status);
+    analytics.capture('beam_status_changed', { beamStatus: status });
   };
 
   beamBridge.onGaze = (data) => {
@@ -450,6 +488,43 @@ function wireEvents(): void {
   beamBridge.onError = (msg) => {
     console.error('[BeamBridge]', msg);
   };
+}
+
+/** Coarse session-length bucket so exact durations never leave the machine. */
+function durationBucket(durationS: number): string {
+  if (durationS < 60) return 'under_1m';
+  if (durationS < 300) return '1_5m';
+  if (durationS < 900) return '5_15m';
+  if (durationS < 1800) return '15_30m';
+  return 'over_30m';
+}
+
+function initAnalytics(): void {
+  const settings = loadSettings();
+  analytics.init({
+    isPackaged: app.isPackaged,
+    isConfigured: isAnalyticsConfigured(),
+    installId: getInstallId(),
+    optedOut: settings.analyticsOptOut,
+    // Anonymous opt-out model: consent is not blocked by default. Seam kept so
+    // a future Overwolf consent-status API can flip this for denied regions.
+    consentBlocked: false,
+    baseProps: analyticsBaseProps(),
+    getClient: () => {
+      // Lazy: posthog-node is only needed in packaged, configured runs.
+      const { PostHog } = require('posthog-node');
+      return new PostHog(POSTHOG_KEY, { host: POSTHOG_HOST, flushAt: 1, flushInterval: 10000 });
+    },
+  });
+
+  // app_opened + first-launch-after-update, computed from the stored version.
+  const previous = loadLastVersion();
+  const current = app.getVersion();
+  analytics.capture('app_opened', {});
+  if (previous && previous !== current) {
+    analytics.capture('update_installed', {});
+  }
+  saveLastVersion(current);
 }
 
 function initUpdater(): void {
@@ -485,6 +560,7 @@ async function bootstrap(): Promise<void> {
   registerIpcHandlers();
   wireEvents();
   initUpdater();
+  initAnalytics();
 
   const primaryDisplay = screen.getPrimaryDisplay();
   const { width, height } = primaryDisplay.size;
@@ -512,6 +588,8 @@ app.on('before-quit', () => {
   irlWebhook.shutdown();
   trayManager.destroy();
   globalShortcut.unregisterAll();
+  // Best-effort flush of any queued analytics before exit.
+  void analytics.shutdown();
   mainWindow?.removeAllListeners('close');
   mainWindow?.destroy();
 });

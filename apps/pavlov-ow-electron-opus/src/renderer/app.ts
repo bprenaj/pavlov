@@ -22,7 +22,7 @@ interface PavlovSettings {
   alertModes: string[]; customSoundPath: string; minimapRect: MinimapRect | null;
   regionName: string; savedRegions: SavedRegion[]; hotkey: string;
   irlEnabled: boolean; irlPort: number; irlWebhookUrl: string;
-  firstRun: boolean; trainingMode: string;
+  firstRun: boolean; trainingMode: string; analyticsOptOut: boolean;
 }
 interface UpdaterState {
   status: string; availableVersion: string | null; error: string | null;
@@ -30,7 +30,7 @@ interface UpdaterState {
 interface AlertSound { soundPath: string; volume: number; }
 interface BootstrapPayload {
   settings: PavlovSettings; entitlement: string; beamStatus: string; history: SessionRecord[];
-  appVersion: string; updater: UpdaterState;
+  appVersion: string; updater: UpdaterState; installId: string;
 }
 interface PavlovApi {
   getBootstrap(): Promise<BootstrapPayload>;
@@ -49,6 +49,8 @@ interface PavlovApi {
   applyPreset(key: string): Promise<PavlovSettings>;
   checkForUpdates(): Promise<void>;
   installUpdate(): Promise<void>;
+  track(event: string, props?: Record<string, unknown>): void;
+  setAnalyticsOptOut(optOut: boolean): Promise<void>;
   onState(cb: (state: TrainingState) => void): void;
   onBeamStatus(cb: (status: string) => void): void;
   onSessionComplete(cb: (record: SessionRecord) => void): void;
@@ -152,6 +154,8 @@ function syncSettingsToUI(s: PavlovSettings): void {
   ($('settingIrlPort') as HTMLInputElement).value = String(s.irlPort);
   ($('settingIrlUrl') as HTMLInputElement).value = s.irlWebhookUrl;
   ($('settingHotkey') as HTMLInputElement).value = s.hotkey;
+  // Checkbox is "send data" = the inverse of the stored opt-out flag.
+  ($('settingAnalytics') as HTMLInputElement).checked = !s.analyticsOptOut;
   updateRegionUI(s);
   $('modeLabel').textContent = s.trainingMode === 'paid' ? 'Pro Mode' : 'Free Mode';
   $('trackingHint').textContent = s.trainingMode === 'free' ? 'Timer mode (Beam not used)' : '';
@@ -194,7 +198,9 @@ function showProModal(): void { $('proModal').style.display = 'flex'; }
 function hideProModal(): void { $('proModal').style.display = 'none'; }
 
 async function startProTrial(): Promise<void> {
+  api.track('trial_started');
   currentEntitlement = await api.setEntitlement('trial');
+  api.track('entitlement_set', { entitlementTier: currentEntitlement });
   hideProModal();
   updateAdBanner();
   await patchSetting({ trainingMode: 'paid' });
@@ -460,7 +466,11 @@ function stopAlertSound(): void {
 }
 
 function showOnboarding(): void { $('onboardingModal').style.display = 'flex'; }
-function hideOnboarding(): void { $('onboardingModal').style.display = 'none'; patchSetting({ firstRun: false }); }
+function hideOnboarding(): void {
+  $('onboardingModal').style.display = 'none';
+  api.track('onboarding_completed');
+  patchSetting({ firstRun: false });
+}
 
 function bindEvents(): void {
   document.querySelectorAll('.nav-item[data-page]').forEach((btn) => {
@@ -471,8 +481,14 @@ function bindEvents(): void {
   $('discordLink').addEventListener('click', (e) => { e.preventDefault(); window.open(DISCORD_URL, '_blank'); });
   $('btnSelectRegionGate').addEventListener('click', selectRegion);
   $('btnChangeRegion').addEventListener('click', selectRegion);
-  $('btnStartTraining').addEventListener('click', () => api.startTraining());
-  $('btnStopTraining').addEventListener('click', () => api.stopTraining());
+  $('btnStartTraining').addEventListener('click', () => {
+    api.track('training_started', { trainingMode: currentSettings.trainingMode });
+    api.startTraining();
+  });
+  $('btnStopTraining').addEventListener('click', () => {
+    api.track('training_stopped', { trainingMode: currentSettings.trainingMode });
+    api.stopTraining();
+  });
   $('btnManualGlance').addEventListener('click', () => api.markManualGlance());
   $('btnClearHistory').addEventListener('click', async () => { await api.clearHistory(); historyRecords = []; renderHistory(); });
   $('btnShareReddit').addEventListener('click', shareReddit);
@@ -491,6 +507,7 @@ function bindEvents(): void {
       showProModal();
       return;
     }
+    api.track('mode_switched', { trainingMode: select.value });
     patchSetting({ trainingMode: select.value });
   });
 
@@ -507,6 +524,7 @@ function bindEvents(): void {
       return;
     }
     // Presets carry known minimap rects; apply directly, no overlay needed.
+    api.track('preset_applied', { gamePreset: key });
     currentSettings = await api.applyPreset(key);
     syncSettingsToUI(currentSettings);
   });
@@ -528,7 +546,12 @@ function bindEvents(): void {
     if (parts.length > 0) { ($('settingHotkey') as HTMLInputElement).value = parts.join('+'); patchSetting({ hotkey: parts.join('+') }); }
   });
   $('btnCmpSettings').addEventListener('click', () => api.openCmpWindow());
-  $('btnUpgradePro').addEventListener('click', showProModal);
+  $('btnUpgradePro').addEventListener('click', () => { api.track('upgrade_clicked'); showProModal(); });
+  $('settingAnalytics').addEventListener('change', (e) => {
+    const optOut = !(e.target as HTMLInputElement).checked;
+    api.setAnalyticsOptOut(optOut);
+    patchSetting({ analyticsOptOut: optOut });
+  });
   $('btnStartTrial').addEventListener('click', startProTrial);
   $('btnCloseProModal').addEventListener('click', hideProModal);
   $('btnInstallUpdate').addEventListener('click', () => api.installUpdate());
@@ -560,6 +583,8 @@ async function selectRegion(): Promise<void> {
     const name = currentSettings.regionName || 'Region 1';
     const existing = currentSettings.savedRegions.filter((r) => r.name !== name);
     existing.push({ name, rect });
+    // Region rect itself is private; only signal that a region was set.
+    api.track('region_selected');
     await patchSetting({ minimapRect: rect, regionName: name, savedRegions: existing });
   }
 }
@@ -584,6 +609,11 @@ async function init(): Promise<void> {
   bindEvents();
   $('appVersionLabel').textContent = data.appVersion;
   renderUpdaterState(data.updater);
+  // Surface the Overwolf consent prompt on first run where the region requires
+  // it, before ads or analytics matter.
+  if (currentSettings.firstRun && (await api.checkCmpRequired())) {
+    api.openCmpWindow();
+  }
   if (currentSettings.firstRun) showOnboarding();
   api.onState(updateTrainingState);
   api.onBeamStatus(updateBeamStatus);

@@ -19,6 +19,8 @@ const CH = {
   APPLY_PRESET: 'pavlov:applyPreset',
   UPDATER_CHECK: 'pavlov:updaterCheck',
   UPDATER_INSTALL: 'pavlov:updaterInstall',
+  TRACK_EVENT: 'pavlov:trackEvent',
+  SET_ANALYTICS_OPTOUT: 'pavlov:setAnalyticsOptOut',
   ON_STATE: 'pavlov:onState',
   ON_BEAM_STATUS: 'pavlov:onBeamStatus',
   ON_SESSION_COMPLETE: 'pavlov:onSessionComplete',
@@ -44,6 +46,10 @@ const api: PavlovApi = {
   applyPreset: (key: string) => ipcRenderer.invoke(CH.APPLY_PRESET, key),
   checkForUpdates: () => ipcRenderer.invoke(CH.UPDATER_CHECK),
   installUpdate: () => ipcRenderer.invoke(CH.UPDATER_INSTALL),
+  track: (event: string, props?: Record<string, unknown>) =>
+    ipcRenderer.send(CH.TRACK_EVENT, event, props ?? {}),
+  setAnalyticsOptOut: (optOut: boolean) =>
+    ipcRenderer.invoke(CH.SET_ANALYTICS_OPTOUT, optOut),
   onState: (cb) => {
     ipcRenderer.on(CH.ON_STATE, (_e, state) => cb(state));
   },

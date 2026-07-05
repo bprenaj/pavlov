@@ -115,6 +115,24 @@ describe('Smoke Tests', () => {
     expect(offenders, `Em dashes are banned in all SwissTropic projects. Fix: ${offenders.join(', ')}`).toEqual([]);
   });
 
+  it('analytics module never references gaze/region/PII field names', () => {
+    const src = fs.readFileSync(
+      path.join(ROOT, 'src', 'main', 'services', 'analytics.ts'),
+      'utf-8',
+    );
+    // The service must be PII-blind: it only knows an allowlist, never these.
+    for (const banned of ['gaze', 'minimapRect', 'customSoundPath', 'irlWebhookUrl', 'point_of_regard']) {
+      expect(src.toLowerCase(), `analytics.ts references ${banned}`).not.toContain(banned.toLowerCase());
+    }
+  });
+
+  it('analytics is main-process only (no posthog import in renderer)', () => {
+    for (const f of ['src/renderer/app.ts', 'src/renderer/regionOverlay.ts', 'src/renderer/alertOverlay.ts']) {
+      const content = fs.readFileSync(path.join(ROOT, f), 'utf-8');
+      expect(content, `${f} imports posthog`).not.toMatch(/posthog/i);
+    }
+  });
+
   it('renderer has no leftover debug instrumentation', () => {
     const files = [
       'src/main/index.ts',

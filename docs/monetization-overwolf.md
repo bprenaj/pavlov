@@ -39,6 +39,42 @@ Pavlov follows an Overwolf-first freemium model:
 - If user selects paid mode without entitlement, present upgrade messaging and keep free mode available.
 - Beam not installed or unavailable must degrade gracefully without app crashes.
 
+## Analytics (what users actually do)
+
+Two layers:
+
+1. **Overwolf built-in** (free, on by default under ow-electron): DAU/WAU/MAU,
+   retention, session length, and the ad/monetization metrics (ad revenue, LTV)
+   that no third-party tool can see. Read from the Overwolf Developers Console.
+2. **PostHog** (product-analytics brain): funnels, retention, cohorts.
+   `src/main/services/analytics.ts` wraps `posthog-node` and sends from the
+   **main process only** (the renderer CSP forbids remote SDKs).
+
+**Privacy model (opt-out, anonymous):**
+- Distinct-id is an anonymous install UUID (`store.getInstallId()`), never PII.
+- Two hard guards in `AnalyticsService`: an **event allowlist**
+  (`ANALYTICS_EVENTS`) and a **property sanitizer** (`ANALYTICS_SAFE_PROPS`).
+  Eye position, screen region rects, local file paths, and device/webhook URLs
+  can never be sent, even if a caller passes them by mistake.
+- On by default when packaged; **"Send anonymous usage data"** toggle in
+  Settings → Privacy & Ads flips `analyticsOptOut` live.
+- Disabled entirely in dev (`!app.isPackaged`) and until a PostHog project key
+  is set in `src/shared/analyticsConfig.ts` (write-only ingestion key, safe to
+  commit; empty = fully inert).
+- Startup surfaces the Overwolf CMP where the region requires it, before ads or
+  analytics matter.
+
+**Events tracked** (~13, allowlisted): app_opened, onboarding_completed,
+region_selected, training_started/stopped, session_complete (aggregated MAS +
+metrics only), mode_switched, trial_started, upgrade_clicked, entitlement_set,
+preset_applied, update_installed, beam_status_changed.
+
+**To go live:** create a free PostHog project, paste the Project API key + host
+into `src/shared/analyticsConfig.ts`. Nothing else changes.
+
+**Swapping tools:** the `AnalyticsService` client is injected (`getClient`), so
+Mixpanel/Amplitude are drop-in replacements later without touching the guards.
+
 ## Next Step for Live Entitlements
 
 Replace `entitlementMock.ts` with a real provider adapter while preserving the same interface used by renderer and session engine.
