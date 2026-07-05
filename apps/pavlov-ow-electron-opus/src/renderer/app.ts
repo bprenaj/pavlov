@@ -142,7 +142,7 @@ function syncSettingsToUI(s: PavlovSettings): void {
   ($('settingHotkey') as HTMLInputElement).value = s.hotkey;
   updateRegionUI(s);
   $('modeLabel').textContent = s.trainingMode === 'paid' ? 'Pro Mode' : 'Free Mode';
-  $('trackingHint').textContent = s.trainingMode === 'free' ? 'Timer mode — Beam not used' : '';
+  $('trackingHint').textContent = s.trainingMode === 'free' ? 'Timer mode (Beam not used)' : '';
 }
 
 function syncTogglePills(modes: string[]): void {

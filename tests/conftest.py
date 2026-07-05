@@ -1,4 +1,4 @@
-"""Pytest configuration — adds src/ to the import path and provides
+"""Pytest configuration - adds src/ to the import path and provides
 shared fixtures.
 """
 

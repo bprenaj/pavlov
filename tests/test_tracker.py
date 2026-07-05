@@ -1,4 +1,4 @@
-"""Tests for BeamTracker — uses mocking since the real SDK needs hardware."""
+"""Tests for BeamTracker - uses mocking since the real SDK needs hardware."""
 
 from unittest.mock import MagicMock, patch
 

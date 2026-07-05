@@ -1,5 +1,7 @@
 # Pavlov / MapSense - Project Instructions
 
+> **ABSOLUTE RULE (all SwissTropic projects): NO EM DASHES. EVER.** Not in UI copy, docs, comments, commit messages, release notes, or anywhere else. Use a comma, period, parentheses, or plain hyphen instead. CI enforces this (`tests/e2e/smoke.test.ts`); never weaken that test.
+
 > **Migration status (March 2026):** The active implementation target is the ow-electron app in [`apps/pavlov-ow-electron-opus`](apps/pavlov-ow-electron-opus). The earlier incomplete attempt is in [`apps/pavlov-ow-electron`](apps/pavlov-ow-electron). The Python/PySide app in [`src`](src) remains a legacy reference during cutover.
 
 ## Current Project State (Read First)

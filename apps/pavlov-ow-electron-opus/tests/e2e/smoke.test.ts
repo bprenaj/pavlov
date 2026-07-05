@@ -81,6 +81,26 @@ describe('Smoke Tests', () => {
     expect(script).toContain('alert.wav');
   });
 
+  it('NO EM DASHES anywhere in app source or copy (SwissTropic hard rule)', () => {
+    const roots = ['src', 'scripts', 'tests'];
+    const offenders: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          walk(full);
+        } else if (/\.(ts|js|mjs|html|css|json|md)$/.test(entry.name)) {
+          const content = fs.readFileSync(full, 'utf-8');
+          if (content.includes('\u2014') || content.includes('&' + 'mdash;')) {
+            offenders.push(path.relative(ROOT, full));
+          }
+        }
+      }
+    };
+    for (const r of roots) walk(path.join(ROOT, r));
+    expect(offenders, `Em dashes are banned in all SwissTropic projects. Fix: ${offenders.join(', ')}`).toEqual([]);
+  });
+
   it('renderer has no leftover debug instrumentation', () => {
     const files = [
       'src/main/index.ts',

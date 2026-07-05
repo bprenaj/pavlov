@@ -1,4 +1,4 @@
-"""Tests for game presets — still available as optional suggestions."""
+"""Tests for game presets - still available as optional suggestions."""
 
 from game_presets import PRESETS, PRESET_ORDER, GamePreset, get_preset, preset_keys
 

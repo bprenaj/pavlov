@@ -1,5 +1,7 @@
 # Pavlov - Agent Operating Guide
 
+> **ABSOLUTE RULE: NO EM DASHES. EVER.** Anywhere: copy, docs, comments, commits, notes. Use comma, period, parentheses, or plain hyphen. Enforced by the e2e smoke test.
+
 ## Primary Source of Truth
 
 - **Active app stack:** [`apps/pavlov-ow-electron-opus`](apps/pavlov-ow-electron-opus)

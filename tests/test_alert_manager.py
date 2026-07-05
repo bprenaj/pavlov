@@ -1,4 +1,4 @@
-"""Tests for AlertManager — requires a QApplication instance."""
+"""Tests for AlertManager - requires a QApplication instance."""
 
 import sys
 import time
