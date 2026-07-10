@@ -31,6 +31,7 @@ import { IrlWebhook } from './services/irlWebhook';
 import { TrayManager } from './services/tray';
 import { UpdaterService } from './services/updater';
 import { AnalyticsService } from './services/analytics';
+import { fileLogger } from './services/logger';
 import { createOverlayWindow } from './services/overlayFactory';
 import { getPreset, presetToRect } from '../shared/gamePresets';
 import { POSTHOG_KEY, POSTHOG_HOST, isAnalyticsConfigured } from '../shared/analyticsConfig';
@@ -41,6 +42,7 @@ let mainWindow: BrowserWindow | null = null;
 let alertOverlayWindow: BrowserWindow | null = null;
 let regionOverlayWindow: BrowserWindow | null = null;
 let regionResolve: ((rect: MinimapRect | null) => void) | null = null;
+let regionPromise: Promise<MinimapRect | null> | null = null;
 let registeredHotkey: string | null = null;
 
 const beamBridge = new BeamBridge();
@@ -144,6 +146,15 @@ function createMainWindow(): BrowserWindow {
   win.on('close', (e) => {
     e.preventDefault();
     win.hide();
+    trayManager.notifyHiddenToTray();
+  });
+
+  // A crashed renderer would otherwise leave a permanently blank window.
+  win.webContents.on('render-process-gone', (_e, details) => {
+    console.error('[Main] Renderer gone:', details.reason, `exitCode=${details.exitCode}`);
+    if (details.reason !== 'clean-exit') {
+      win.webContents.reload();
+    }
   });
 
   return win;
@@ -345,8 +356,16 @@ function registerIpcHandlers(): void {
     return result.filePaths[0];
   });
 
-  ipcMain.handle(IPC.OPEN_REGION_OVERLAY, async () => {
-    return createRegionOverlay();
+  ipcMain.handle(IPC.OPEN_REGION_OVERLAY, () => {
+    // Reuse the in-flight overlay if invoked again (e.g. double-click on the
+    // button); a second createRegionOverlay would overwrite regionResolve and
+    // strand the first invoke's promise forever.
+    if (!regionPromise) {
+      regionPromise = createRegionOverlay().finally(() => {
+        regionPromise = null;
+      });
+    }
+    return regionPromise;
   });
 
   ipcMain.handle(IPC.APPLY_PRESET, (_e, key: string) => {
@@ -465,7 +484,9 @@ function wireEvents(): void {
         timeOnMapPct: record.timeOnMapPct,
         avgGlanceDurationMs: record.avgGlanceDurationMs,
         durationBucket: durationBucket(record.durationS),
-        trainingMode: sessionEngine.isRunning() ? 'paid' : loadSettings().trainingMode,
+        // The engine's configured mode, i.e. the mode this session actually
+        // ran in (settings may say 'paid' while the session ran free).
+        trainingMode: sessionEngine.getMode(),
       });
     }
   });
@@ -576,22 +597,65 @@ if (app.isPackaged) {
   app.setAppUserModelId('com.swisstropic.pavlov');
 }
 
-app.whenReady().then(bootstrap);
+// Packaged runs have no console; mirror all console output into
+// <userData>/logs/main.log so field issues leave a trace.
+if (app.isPackaged) {
+  fileLogger.init({ dir: path.join(app.getPath('userData'), 'logs') });
+  fileLogger.hookConsole();
+}
+
+// Last-resort handlers: log instead of dying silently (packaged) or showing
+// a raw error dialog. The tray app keeps running; the log tells us why.
+process.on('uncaughtException', (err) => {
+  console.error('[Main] Uncaught exception:', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[Main] Unhandled rejection:', reason instanceof Error ? reason : String(reason));
+});
+app.on('child-process-gone', (_e, details) => {
+  console.error('[Main] Child process gone:', details.type, details.reason);
+});
+
+// Second launches (double-clicked shortcut while already in the tray) focus
+// the existing window instead of spawning a second tray icon, a second
+// updater, and an IRL port conflict.
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    mainWindow?.show();
+    mainWindow?.focus();
+  });
+  app.whenReady().then(bootstrap);
+}
 
 app.on('window-all-closed', () => {
   // Keep running: Pavlov lives in the tray while training.
 });
 
-app.on('before-quit', () => {
+let quitStarted = false;
+app.on('before-quit', (e) => {
+  if (quitStarted) return;
+  quitStarted = true;
+  // Hold the quit open just long enough to flush queued analytics (the old
+  // fire-and-forget flush lost session_complete events on quit-after-training).
+  // Bounded so a dead network can never hang exit; quitAndInstall still works
+  // because electron-updater installs on the real quit that follows.
+  e.preventDefault();
+
   sessionEngine.stop();
   beamBridge.stop();
   irlWebhook.shutdown();
   trayManager.destroy();
   globalShortcut.unregisterAll();
-  // Best-effort flush of any queued analytics before exit.
-  void analytics.shutdown();
   mainWindow?.removeAllListeners('close');
   mainWindow?.destroy();
+
+  const timeout = new Promise((resolve) => setTimeout(resolve, 1500));
+  void Promise.race([analytics.shutdown(), timeout]).finally(() => {
+    console.log('[Main] Shutdown complete');
+    app.quit();
+  });
 });
 
 app.on('activate', () => {

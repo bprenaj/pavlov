@@ -95,6 +95,42 @@ describe('Smoke Tests', () => {
     expect(script).toContain('tray');
   });
 
+  it('main process is hardened: single instance, crash logging, file logger', () => {
+    const main = fs.readFileSync(path.join(ROOT, 'src', 'main', 'index.ts'), 'utf-8');
+    // One tray icon, one updater, one IRL port: never two Pavlov processes.
+    expect(main).toContain('requestSingleInstanceLock');
+    expect(main).toContain('second-instance');
+    // Crashes must leave a trace, not a silent death or raw dialog.
+    expect(main).toContain('uncaughtException');
+    expect(main).toContain('unhandledRejection');
+    expect(main).toContain('render-process-gone');
+    // Packaged runs mirror console output to <userData>/logs/main.log.
+    expect(main).toContain('fileLogger.init');
+    expect(main).toContain('fileLogger.hookConsole');
+    expect(fs.existsSync(path.join(ROOT, 'src', 'main', 'services', 'logger.ts'))).toBe(true);
+  });
+
+  it('quit path flushes analytics with a bounded timeout', () => {
+    const main = fs.readFileSync(path.join(ROOT, 'src', 'main', 'index.ts'), 'utf-8');
+    expect(main).toContain('analytics.shutdown()');
+    // The flush must be raced against a timeout so a dead network never hangs exit.
+    expect(main).toMatch(/Promise\.race/);
+  });
+
+  it('release workflow gates publishing on typecheck, lint, and tests', () => {
+    const wf = fs.readFileSync(
+      path.join(ROOT, '..', '..', '.github', 'workflows', 'release.yml'),
+      'utf-8',
+    );
+    const publishIdx = wf.indexOf('npm run release');
+    expect(publishIdx).toBeGreaterThan(-1);
+    for (const gate of ['npm run typecheck', 'npm run lint', 'npm test']) {
+      const idx = wf.indexOf(gate);
+      expect(idx, `release.yml missing gate: ${gate}`).toBeGreaterThan(-1);
+      expect(idx, `${gate} must run before publish`).toBeLessThan(publishIdx);
+    }
+  });
+
   it('NO EM DASHES anywhere in app source or copy (SwissTropic hard rule)', () => {
     const roots = ['src', 'scripts', 'tests'];
     const offenders: string[] = [];

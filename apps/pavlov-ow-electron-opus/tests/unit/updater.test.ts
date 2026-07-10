@@ -115,6 +115,26 @@ describe('UpdaterService', () => {
     expect(fake.checkForUpdates).not.toHaveBeenCalled();
   });
 
+  it('recovers to idle when a download is cancelled, so checks resume', () => {
+    const { fake, service } = makeUpdater();
+    fake.emit('update-available', { version: '2.0.0' });
+    expect(service.getState().status).toBe('downloading');
+
+    fake.emit('update-cancelled');
+    expect(service.getState()).toMatchObject({ status: 'idle', availableVersion: null });
+
+    service.check();
+    expect(fake.checkForUpdates).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps checking after an error state', () => {
+    const { fake, service } = makeUpdater();
+    fake.emit('error', new Error('offline'));
+    expect(service.getState().status).toBe('error');
+    service.check();
+    expect(fake.checkForUpdates).toHaveBeenCalledTimes(1);
+  });
+
   it('installNow only fires when an update is staged', () => {
     const { fake, service } = makeUpdater();
     service.installNow();

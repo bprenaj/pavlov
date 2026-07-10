@@ -79,6 +79,11 @@ export class SessionEngine extends EventEmitter {
     return this.running;
   }
 
+  /** The mode the engine was configured with (the mode a finished session ran in). */
+  getMode(): TrainingMode {
+    return this.mode;
+  }
+
   /** Called by the Beam bridge on each gaze frame (paid mode). */
   onGaze(data: GazeData): void {
     if (!this.running || this.mode !== 'paid' || !this.minimapRect) return;

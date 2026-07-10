@@ -393,17 +393,24 @@ npm run lint
 npm test
 ```
 
-### Test structure (137 tests, 13 files)
+### Test structure (174 tests, 15 files)
 
 | Suite | Files | Tests | Coverage |
 |-------|-------|-------|----------|
-| `tests/unit/` | 9 | 71 | MAS, region, presets, schemas, entitlement (+persistence), alertManager, IPC, updater state machine, IRL webhook server |
-| `tests/integration/` | 2 | 19 | Session engine free + paid modes |
-| `tests/ui/` | 1 | 30 | Renderer DOM structure (all elements, metrics, onboarding, update banner, pro modal, offline-safety/CSP) |
-| `tests/e2e/` | 1 | 9 | Smoke checks (files, scripts, HTML references, auto-update wiring, no debug cruft) |
+| `tests/unit/` | 11 | 101 | MAS, region, presets, schemas, entitlement (+persistence), alertManager, analytics guards, IPC, updater state machine (+cancel/error recovery), IRL webhook server (+bind retry), file logger (+rotation) |
+| `tests/integration/` | 2 | 20 | Session engine free + paid modes |
+| `tests/ui/` | 1 | 37 | Renderer DOM structure (all elements, metrics, onboarding, update banner, pro modal, offline-safety/CSP) |
+| `tests/e2e/` | 1 | 16 | Smoke checks (files, scripts, HTML references, auto-update wiring, main-process hardening, release-gate parity, no debug cruft) |
 
 When adding new UI elements, add corresponding tests to `tests/ui/rendererLayout.test.ts`.
 Lint runs clean with zero warnings; keep it that way.
+
+### Field diagnostics
+
+Packaged runs mirror all console output to `%APPDATA%/Pavlov/logs/main.log`
+(512KB rotation, one `.1` generation kept; `src/main/services/logger.ts`).
+When a user reports a bug, ask for that file first. Uncaught exceptions,
+unhandled rejections, and renderer crashes are logged there too.
 
 ### Packaged smoke test (before any release)
 

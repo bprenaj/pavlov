@@ -31,6 +31,13 @@ describe('SessionEngine - Free Mode', () => {
     expect(engine.isRunning()).toBe(true);
   });
 
+  it('reports the configured mode after the session ends (analytics reads it then)', () => {
+    expect(engine.getMode()).toBe('free');
+    engine.start();
+    engine.stop();
+    expect(engine.getMode()).toBe('free');
+  });
+
   it('emits state events while running', () => {
     const stateHandler = vi.fn();
     engine.on('state', stateHandler);

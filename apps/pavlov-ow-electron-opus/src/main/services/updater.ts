@@ -83,6 +83,12 @@ export class UpdaterService {
     updater.on('update-not-available', () => {
       this.set({ status: 'idle', availableVersion: null });
     });
+    updater.on('update-cancelled', () => {
+      // Without this a cancelled download leaves status stuck at
+      // 'downloading', and check() skips every future scheduled check.
+      this.set({ status: 'idle', availableVersion: null });
+      console.log('[Updater] Download cancelled; will retry on next check');
+    });
     updater.on('update-downloaded', (...args: unknown[]) => {
       const info = args[0] as { version?: string } | undefined;
       this.set({ status: 'ready', availableVersion: info?.version ?? this.state.availableVersion });

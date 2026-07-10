@@ -84,6 +84,25 @@ describe('IrlWebhook', () => {
     await expect(getStatus(PORT_A)).rejects.toThrow();
   });
 
+  it('retries the bind on reconfigure after the port was taken', async () => {
+    // Occupy the port so the hook's first bind fails.
+    const blocker = http.createServer(() => {});
+    await new Promise<void>((resolve) => blocker.listen(PORT_A, '127.0.0.1', resolve));
+
+    const hook = makeHook();
+    hook.configure(true, PORT_A);
+    // Give the async 'error' event time to fire and null the dead server.
+    await new Promise((r) => setTimeout(r, 100));
+
+    await new Promise<void>((resolve) => blocker.close(() => resolve()));
+
+    // Same port, still enabled: must retry the bind instead of staying dead.
+    hook.configure(true, PORT_A);
+    await waitForServer(PORT_A);
+    const res = await getStatus(PORT_A);
+    expect(res.code).toBe(200);
+  });
+
   it('returns 404 for unknown routes', async () => {
     const hook = makeHook();
     hook.configure(true, PORT_A);

@@ -32,6 +32,7 @@ export class TrayManager {
   private status: BeamStatus = 'not_running';
   private updaterState: UpdaterState | null = null;
   private onInstallUpdate: (() => void) | null = null;
+  private hiddenNoticeShown = false;
 
   setUpdateHandler(onInstallUpdate: () => void): void {
     this.onInstallUpdate = onInstallUpdate;
@@ -48,9 +49,28 @@ export class TrayManager {
     this.tray.setToolTip(`Pavlov - Map Awareness Coach\n${statusLabelFor(this.status)}`);
     this.updateMenu();
 
+    // Windows convention: a single left-click opens the app.
+    this.tray.on('click', () => {
+      this.mainWindow?.show();
+      this.mainWindow?.focus();
+    });
     this.tray.on('double-click', () => {
       this.mainWindow?.show();
       this.mainWindow?.focus();
+    });
+  }
+
+  /**
+   * One-time balloon the first time the window hides to the tray, so
+   * first-time users know the app did not close.
+   */
+  notifyHiddenToTray(): void {
+    if (this.hiddenNoticeShown || !this.tray || process.platform !== 'win32') return;
+    this.hiddenNoticeShown = true;
+    this.tray.displayBalloon({
+      title: 'Pavlov is still running',
+      content: 'Training keeps going in the tray. Click the icon to reopen, right-click to quit.',
+      iconType: 'info',
     });
   }
 
