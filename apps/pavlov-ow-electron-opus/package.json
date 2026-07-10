@@ -70,8 +70,7 @@
             "x64"
           ]
         }
-      ],
-      "signAndEditExecutable": false
+      ]
     },
     "nsis": {
       "oneClick": false,
@@ -79,7 +78,9 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Pavlov"
+      "shortcutName": "Pavlov",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico"
     },
     "files": [
       "dist/**/*",

@@ -48,6 +48,16 @@ if (existsSync(trayScriptDir)) {
   console.warn('[copy-static] WARNING: build/tray icons missing');
 }
 
+// Branded app icon, bundled so the window/taskbar/Alt-Tab icon is set at
+// runtime. build/ is not inside the asar (files = dist + package.json), so the
+// main process cannot read build/icon.ico directly once packaged; copy it in.
+const appIconSrc = resolve(root, 'build', 'icon.ico');
+if (existsSync(appIconSrc)) {
+  cpSync(appIconSrc, resolve(trayDest, 'icon.ico'));
+} else {
+  console.warn('[copy-static] WARNING: build/icon.ico missing');
+}
+
 // Bundle Chart.js locally -- the app must not load remote scripts.
 const chartSrc = resolve(root, 'node_modules', 'chart.js', 'dist', 'chart.umd.min.js');
 mkdirSync(resolve(dest, 'vendor'), { recursive: true });

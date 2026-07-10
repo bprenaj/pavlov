@@ -102,12 +102,16 @@ function configureSession(settings: PavlovSettings): void {
 }
 
 /**
- * Branded window/taskbar icon. The packaged exe carries build/icon.ico as a
- * resource, but dev runs (and some taskbar contexts) use the window icon, so
- * set it explicitly when the file is reachable.
+ * Branded window/taskbar/Alt-Tab icon. Set explicitly in every run: the
+ * window icon is what Windows shows on the taskbar button and in Alt-Tab
+ * while the app is open, and relying on the exe's embedded icon alone left
+ * some contexts showing the ow-electron base icon. copy-static bundles
+ * build/icon.ico into dist/main/assets so it is reachable when packaged
+ * (build/ is not inside the asar); the build/ path is the dev fallback.
  */
 function getWindowIconPath(): string | undefined {
-  // Dev runs only; the packaged exe already embeds build/icon.ico.
+  const bundled = path.join(__dirname, 'assets', 'icon.ico');
+  if (fs.existsSync(bundled)) return bundled;
   const dev = path.join(__dirname, '..', '..', 'build', 'icon.ico');
   return fs.existsSync(dev) ? dev : undefined;
 }

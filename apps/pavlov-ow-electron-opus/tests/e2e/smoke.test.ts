@@ -81,6 +81,26 @@ describe('Smoke Tests', () => {
     expect(script).toContain('alert.wav');
   });
 
+  it('packaged exe gets the branded icon (rcedit not disabled)', () => {
+    const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf-8'));
+    expect(pkg.build.icon).toBe('build/icon.ico');
+    // signAndEditExecutable:false skips electron-builder's rcedit step, which is
+    // exactly what stamps build/icon.ico onto the exe. Leaving it disabled ships
+    // the ow-electron base (Overwolf) icon on the taskbar and Start Menu shortcut.
+    expect(pkg.build.win.signAndEditExecutable).not.toBe(false);
+  });
+
+  it('app icon is bundled for the runtime window/taskbar icon', () => {
+    // build/ is not inside the asar (files = dist + package.json), so the main
+    // process needs icon.ico copied into dist to set the window icon.
+    const copyScript = fs.readFileSync(path.join(ROOT, 'scripts', 'copy-static.mjs'), 'utf-8');
+    expect(copyScript).toContain('icon.ico');
+    const main = fs.readFileSync(path.join(ROOT, 'src', 'main', 'index.ts'), 'utf-8');
+    // The window must be given an icon, loaded from the bundled assets path.
+    expect(main).toContain('getWindowIconPath');
+    expect(main).toMatch(/'assets',\s*'icon\.ico'/);
+  });
+
   it('branded icons exist: app ico + tray status variants (PNG, non-empty)', () => {
     expect(fs.existsSync(path.join(ROOT, 'build', 'icon.ico'))).toBe(true);
     for (const f of ['tray-tracking.png', 'tray-connecting.png', 'tray-off.png']) {
