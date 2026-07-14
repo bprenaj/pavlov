@@ -20,10 +20,23 @@ import type { UpdaterState } from '../../shared/types';
 export interface AutoUpdaterLike {
   autoDownload: boolean;
   autoInstallOnAppQuit: boolean;
+  allowPrerelease: boolean;
+  channel: string | null;
   logger?: unknown;
   on(event: string, listener: (...args: never[]) => void): unknown;
   checkForUpdates(): Promise<unknown>;
   quitAndInstall(isSilent?: boolean, isForceRunAfter?: boolean): void;
+}
+
+export type UpdateChannel = 'latest' | 'beta';
+
+/**
+ * Beta installs (version like 1.0.4-beta.7, published by the beta workflow)
+ * follow the beta feed and keep updating themselves as new betas ship.
+ * Stable installs never see prereleases.
+ */
+export function channelForVersion(version: string): UpdateChannel {
+  return /-beta(\.|$)/.test(version) ? 'beta' : 'latest';
 }
 
 export interface UpdaterOptions {
@@ -33,6 +46,8 @@ export interface UpdaterOptions {
   getAutoUpdater: () => AutoUpdaterLike;
   /** called whenever state changes, e.g. push to renderer + tray */
   onStateChange: (state: UpdaterState) => void;
+  /** update feed to follow; derive from the app version via channelForVersion */
+  channel?: UpdateChannel;
   /** scheduling seams, default to real timers */
   setTimeoutFn?: typeof setTimeout;
   setIntervalFn?: typeof setInterval;
@@ -68,6 +83,11 @@ export class UpdaterService {
     this.autoUpdater = updater;
     updater.autoDownload = true;
     updater.autoInstallOnAppQuit = true;
+    // Set both explicitly: electron-updater defaults allowPrerelease from the
+    // app's own version, and we want the choice to be deterministic.
+    const channel = opts.channel ?? 'latest';
+    updater.channel = channel;
+    updater.allowPrerelease = channel === 'beta';
     updater.logger = {
       info: (m: unknown) => console.log('[Updater]', m),
       warn: (m: unknown) => console.log('[Updater][warn]', m),

@@ -70,6 +70,15 @@ export function saveLastVersion(version: string): void {
   store.set('lastVersion', version);
 }
 
+/** One-time flag: beta builds register launch-at-login exactly once. */
+export function loadBetaAutoLaunchEnrolled(): boolean {
+  return store.get('betaAutoLaunchEnrolled') === true;
+}
+
+export function saveBetaAutoLaunchEnrolled(): void {
+  store.set('betaAutoLaunchEnrolled', true);
+}
+
 export function getStorePath(): string {
   return store.path;
 }

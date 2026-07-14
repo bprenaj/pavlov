@@ -151,23 +151,68 @@ describe('Smoke Tests', () => {
     }
   });
 
+  it('beta workflow gates publishing on typecheck, lint, and tests', () => {
+    const wf = fs.readFileSync(
+      path.join(ROOT, '..', '..', '.github', 'workflows', 'beta.yml'),
+      'utf-8',
+    );
+    const publishIdx = wf.indexOf('npm run release');
+    expect(publishIdx).toBeGreaterThan(-1);
+    for (const gate of ['npm run typecheck', 'npm run lint', 'npm test']) {
+      const idx = wf.indexOf(gate);
+      expect(idx, `beta.yml missing gate: ${gate}`).toBeGreaterThan(-1);
+      expect(idx, `${gate} must run before publish`).toBeLessThan(publishIdx);
+    }
+    // Betas must publish as GitHub prereleases with a -beta.N version, or
+    // they would land on the stable latest.yml feed and hit every user.
+    expect(wf).toContain('build.publish.releaseType=prerelease');
+    expect(wf).toMatch(/-beta\./);
+  });
+
+  it('beta channel is wired: updater channel + launch-at-login enrollment', () => {
+    const main = fs.readFileSync(path.join(ROOT, 'src', 'main', 'index.ts'), 'utf-8');
+    // Beta installs follow the beta feed; stable installs never see betas.
+    expect(main).toContain('channelForVersion(app.getVersion())');
+    // Beta installs register to start with Windows so the beta runs at all times.
+    expect(main).toContain('enrollBetaAutoLaunch()');
+    expect(main).toContain('setLoginItemSettings');
+  });
+
+  it('download site exists and points at this repo', () => {
+    const sitePath = path.join(ROOT, '..', '..', 'site', 'index.html');
+    expect(fs.existsSync(sitePath)).toBe(true);
+    const site = fs.readFileSync(sitePath, 'utf-8');
+    expect(site).toContain('bprenaj/pavlov');
+    const pagesWf = path.join(ROOT, '..', '..', '.github', 'workflows', 'pages.yml');
+    expect(fs.existsSync(pagesWf)).toBe(true);
+  });
+
   it('NO EM DASHES anywhere in app source or copy (SwissTropic hard rule)', () => {
-    const roots = ['src', 'scripts', 'tests'];
+    const REPO_ROOT = path.join(ROOT, '..', '..');
+    const roots = [
+      path.join(ROOT, 'src'),
+      path.join(ROOT, 'scripts'),
+      path.join(ROOT, 'tests'),
+      path.join(REPO_ROOT, 'site'),
+      path.join(REPO_ROOT, '.github', 'workflows'),
+    ];
     const offenders: string[] = [];
     const walk = (dir: string) => {
       for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
         const full = path.join(dir, entry.name);
         if (entry.isDirectory()) {
           walk(full);
-        } else if (/\.(ts|js|mjs|html|css|json|md)$/.test(entry.name)) {
+        } else if (/\.(ts|js|mjs|html|css|json|md|yml|yaml)$/.test(entry.name)) {
           const content = fs.readFileSync(full, 'utf-8');
           if (content.includes('\u2014') || content.includes('&' + 'mdash;')) {
-            offenders.push(path.relative(ROOT, full));
+            offenders.push(path.relative(REPO_ROOT, full));
           }
         }
       }
     };
-    for (const r of roots) walk(path.join(ROOT, r));
+    for (const r of roots) {
+      if (fs.existsSync(r)) walk(r);
+    }
     expect(offenders, `Em dashes are banned in all SwissTropic projects. Fix: ${offenders.join(', ')}`).toEqual([]);
   });
 

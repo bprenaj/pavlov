@@ -29,6 +29,7 @@
 - Electron migration notes: [`docs/electron-migration.md`](docs/electron-migration.md)
 - Overwolf monetization notes: [`docs/monetization-overwolf.md`](docs/monetization-overwolf.md)
 - Testing strategy: [`docs/testing-strategy.md`](docs/testing-strategy.md)
+- CI/CD, beta channel, download site: [`docs/ci-cd.md`](docs/ci-cd.md)
 
 ## What Is MapSense
 
@@ -440,6 +441,18 @@ git push --follow-tags   # .github/workflows/release.yml builds + publishes
 
 Publishing uploads the installer, the `.blockmap` (differential updates), and
 `latest.yml` (the update feed). Never hand-edit or delete `latest.yml`.
+
+**Beta channel (continuous):** every push to `main` also publishes a GitHub
+*prerelease* versioned `<next-patch>-beta.<run#>` via
+`.github/workflows/beta.yml`, with `beta.yml` as its update feed. Beta
+installs (version contains `-beta`) follow that feed, register launch-at-login
+once, and keep themselves current automatically. Stable installs never see
+prereleases. Full pipeline docs: [`docs/ci-cd.md`](docs/ci-cd.md).
+
+**Download site:** `site/index.html` deploys to Cloudflare Pages
+(`.github/workflows/pages.yml`, needs `CLOUDFLARE_API_TOKEN` +
+`CLOUDFLARE_ACCOUNT_ID` repo secrets). It reads the GitHub Releases API in
+the browser, so it always offers the newest stable and beta installers.
 
 > **Install gotcha (March 2026):** `@overwolf/ow-electron` must stay on a
 > version whose runtime binary is still downloadable (403s otherwise). Pinned

@@ -1,9 +1,13 @@
 name: Tests
 
+# CI gate: typecheck, lint, and the full test suite on every push and PR.
 on:
   push:
-    branches: [main]
   pull_request:
+
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:

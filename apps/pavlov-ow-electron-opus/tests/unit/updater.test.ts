@@ -1,11 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
-import { UpdaterService } from '../../src/main/services/updater';
-import type { AutoUpdaterLike } from '../../src/main/services/updater';
+import { UpdaterService, channelForVersion } from '../../src/main/services/updater';
+import type { AutoUpdaterLike, UpdateChannel } from '../../src/main/services/updater';
 import type { UpdaterState } from '../../src/shared/types';
 
 class FakeAutoUpdater implements AutoUpdaterLike {
   autoDownload = false;
   autoInstallOnAppQuit = false;
+  allowPrerelease = false;
+  channel: string | null = null;
   logger: unknown = null;
   quitAndInstall = vi.fn();
   checkForUpdates = vi.fn<() => Promise<unknown>>().mockResolvedValue(null);
@@ -26,7 +28,7 @@ class FakeAutoUpdater implements AutoUpdaterLike {
   }
 }
 
-function makeUpdater(opts: { isPackaged?: boolean } = {}) {
+function makeUpdater(opts: { isPackaged?: boolean; channel?: UpdateChannel } = {}) {
   const fake = new FakeAutoUpdater();
   const states: UpdaterState[] = [];
   const service = new UpdaterService();
@@ -34,6 +36,7 @@ function makeUpdater(opts: { isPackaged?: boolean } = {}) {
   const intervals: (() => void)[] = [];
   service.init({
     isPackaged: opts.isPackaged ?? true,
+    channel: opts.channel,
     getAutoUpdater: () => fake,
     onStateChange: (s) => states.push(s),
     setTimeoutFn: ((fn: () => void) => {
@@ -67,6 +70,18 @@ describe('UpdaterService', () => {
     const { fake } = makeUpdater();
     expect(fake.autoDownload).toBe(true);
     expect(fake.autoInstallOnAppQuit).toBe(true);
+  });
+
+  it('defaults to the stable feed with prereleases blocked', () => {
+    const { fake } = makeUpdater();
+    expect(fake.channel).toBe('latest');
+    expect(fake.allowPrerelease).toBe(false);
+  });
+
+  it('beta channel follows the beta feed and allows prereleases', () => {
+    const { fake } = makeUpdater({ channel: 'beta' });
+    expect(fake.channel).toBe('beta');
+    expect(fake.allowPrerelease).toBe(true);
   });
 
   it('schedules a first check and a periodic check', () => {
@@ -151,5 +166,21 @@ describe('UpdaterService', () => {
     fake.emit('update-available', { version: '2.0.0' });
     fake.emit('update-downloaded', { version: '2.0.0' });
     expect(states.map((s) => s.status)).toEqual(['checking', 'downloading', 'ready']);
+  });
+});
+
+describe('channelForVersion', () => {
+  it('routes beta builds to the beta channel', () => {
+    expect(channelForVersion('1.0.4-beta.7')).toBe('beta');
+    expect(channelForVersion('2.1.0-beta.123')).toBe('beta');
+  });
+
+  it('routes stable builds to the latest channel', () => {
+    expect(channelForVersion('1.0.3')).toBe('latest');
+    expect(channelForVersion('2.0.0')).toBe('latest');
+  });
+
+  it('does not misread a version that merely contains the word beta', () => {
+    expect(channelForVersion('1.0.3-betamax.1')).toBe('latest');
   });
 });

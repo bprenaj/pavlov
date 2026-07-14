@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pavlov, the map awareness coach</title>
+  <meta name="description" content="Pavlov trains your minimap awareness with timer-based cues and optional Beam Eye Tracker gaze coaching. Free download for Windows.">
+  <style>
+    :root {
+      --accent: #00D4FF;
+      --bg-top: #0B1120;
+      --bg-bottom: #101828;
+      --card: #1A2332;
+      --border: #243044;
+      --gold: #C8A246;
+      --text: #E8ECF2;
+      --text-2: #8899AA;
+      --success: #00E5A0;
+      --warning: #FFB74D;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 20px;
+    }
+    main { width: 100%; max-width: 880px; }
+    header { text-align: center; margin-bottom: 40px; }
+    h1 { font-size: 44px; letter-spacing: 1px; }
+    h1 .bell { color: var(--accent); }
+    .tagline { color: var(--text-2); font-size: 18px; margin-top: 10px; }
+    .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 700px) { .cards { grid-template-columns: 1fr; } }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .card h2 { font-size: 22px; }
+    .badge {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 999px;
+      width: fit-content;
+    }
+    .badge.stable { background: rgba(0, 229, 160, 0.12); color: var(--success); }
+    .badge.beta { background: rgba(255, 183, 77, 0.12); color: var(--warning); }
+    .card p { color: var(--text-2); font-size: 14px; line-height: 1.6; flex-grow: 1; }
+    .version { color: var(--text-2); font-size: 13px; min-height: 18px; }
+    .btn {
+      display: block;
+      text-align: center;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 15px;
+      padding: 13px 18px;
+      border-radius: 8px;
+      transition: filter 0.15s ease;
+    }
+    .btn:hover { filter: brightness(1.15); }
+    .btn.primary { background: var(--accent); color: #04121A; }
+    .btn.beta { background: transparent; color: var(--warning); border: 1px solid var(--warning); }
+    .note {
+      margin-top: 28px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      color: var(--text-2);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .note strong { color: var(--text); }
+    footer {
+      margin-top: 40px;
+      color: var(--text-2);
+      font-size: 13px;
+      text-align: center;
+      line-height: 1.8;
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Pavlov <span class="bell">&#128276;</span></h1>
+      <p class="tagline">Your map awareness coach. Timer-based cues for free, gaze-driven coaching with Beam Eye Tracker.</p>
+    </header>
+
+    <div class="cards">
+      <section class="card">
+        <span class="badge stable">Stable</span>
+        <h2>Download Pavlov</h2>
+        <p>The latest stable release for Windows (x64). Auto-updates itself when a new stable version ships.</p>
+        <span class="version" id="stable-version">Checking latest version...</span>
+        <a class="btn primary" id="stable-link" href="https://github.com/bprenaj/pavlov/releases/latest">Download for Windows</a>
+      </section>
+
+      <section class="card">
+        <span class="badge beta">Beta</span>
+        <h2>Run the Beta</h2>
+        <p>A fresh build from every merge. Installs once, then starts with Windows and quietly updates itself to each new beta, so your PC is always running the newest build. Expect rough edges; that is the point.</p>
+        <span class="version" id="beta-version">Checking latest beta...</span>
+        <a class="btn beta" id="beta-link" href="https://github.com/bprenaj/pavlov/releases">Get the Beta</a>
+      </section>
+    </div>
+
+    <div class="note">
+      <strong>How the beta channel works:</strong> every change merged to main is built, tested, and published automatically. The beta app checks for updates shortly after launch and every few hours, downloads them in the background, and installs on restart (or the next quit). To leave the beta, uninstall it and install the stable build. Gaze features need the free
+      <a href="https://store.steampowered.com/app/2012120/Eyeware_Beam/" style="color: var(--accent); text-decoration: none;">Beam Eye Tracker</a>; timer cues work without it.
+    </div>
+
+    <footer>
+      <a href="https://github.com/bprenaj/pavlov/releases">All releases</a> &middot;
+      <a href="https://github.com/bprenaj/pavlov">Source on GitHub</a> &middot;
+      <a href="https://discord.gg/khk2dq8Bj3">Discord</a><br>
+      Based on the MIT-licensed <a href="https://github.com/kenneth-ew/MOBA-Minimap-Awareness-Trainer">MOBA Minimap Awareness Trainer</a> prototype.
+    </footer>
+  </main>
+
+  <script>
+    // The page always offers the newest installers without needing a
+    // redeploy: releases are looked up in the browser from the public
+    // GitHub API. If the API is unreachable, the static fallback links
+    // to the releases page still work.
+    const REPO = 'bprenaj/pavlov';
+
+    function installerAsset(release) {
+      return (release.assets || []).find(function (a) {
+        return a.name.endsWith('.exe');
+      });
+    }
+
+    function wireCard(release, linkId, versionId, label) {
+      const link = document.getElementById(linkId);
+      const version = document.getElementById(versionId);
+      if (!release) {
+        version.textContent = 'No ' + label + ' build published yet.';
+        return;
+      }
+      const asset = installerAsset(release);
+      if (asset) link.href = asset.browser_download_url;
+      else link.href = release.html_url;
+      version.textContent = 'Latest ' + label + ': ' + release.tag_name;
+    }
+
+    fetch('https://api.github.com/repos/' + REPO + '/releases?per_page=30')
+      .then(function (r) {
+        if (!r.ok) throw new Error('GitHub API ' + r.status);
+        return r.json();
+      })
+      .then(function (releases) {
+        const published = releases.filter(function (r) { return !r.draft; });
+        const stable = published.find(function (r) { return !r.prerelease; });
+        const beta = published.find(function (r) { return r.prerelease; });
+        wireCard(stable, 'stable-link', 'stable-version', 'stable');
+        wireCard(beta, 'beta-link', 'beta-version', 'beta');
+      })
+      .catch(function () {
+        document.getElementById('stable-version').textContent = 'Version lookup unavailable; the button links to the releases page.';
+        document.getElementById('beta-version').textContent = 'Version lookup unavailable; the button links to the releases page.';
+      });
+  </script>
+</body>
+</html>

@@ -21,6 +21,8 @@ import {
   getInstallId,
   loadLastVersion,
   saveLastVersion,
+  loadBetaAutoLaunchEnrolled,
+  saveBetaAutoLaunchEnrolled,
 } from './services/store';
 import { getEntitlement, setEntitlement, isPaid, initEntitlement } from './services/entitlement';
 import { migrateLegacyData } from './services/migration';
@@ -29,7 +31,7 @@ import { SessionEngine } from './services/sessionEngine';
 import { AlertManager } from './services/alertManager';
 import { IrlWebhook } from './services/irlWebhook';
 import { TrayManager } from './services/tray';
-import { UpdaterService } from './services/updater';
+import { UpdaterService, channelForVersion } from './services/updater';
 import { AnalyticsService } from './services/analytics';
 import { fileLogger } from './services/logger';
 import { createOverlayWindow } from './services/overlayFactory';
@@ -552,10 +554,25 @@ function initAnalytics(): void {
   saveLastVersion(current);
 }
 
+/**
+ * Beta builds are meant to run on the tester's PC at all times: enroll them
+ * to start with Windows once, so the auto-updated beta is always live. One
+ * time only, so a tester who disables it in Windows settings stays disabled.
+ */
+function enrollBetaAutoLaunch(): void {
+  if (!app.isPackaged) return;
+  if (channelForVersion(app.getVersion()) !== 'beta') return;
+  if (loadBetaAutoLaunchEnrolled()) return;
+  app.setLoginItemSettings({ openAtLogin: true });
+  saveBetaAutoLaunchEnrolled();
+  console.log('[Beta] Enrolled launch-at-login for the beta channel');
+}
+
 function initUpdater(): void {
   trayManager.setUpdateHandler(() => updater.installNow());
   updater.init({
     isPackaged: app.isPackaged,
+    channel: channelForVersion(app.getVersion()),
     getAutoUpdater: () => {
       // Lazy: electron-updater reads app metadata at require time and is
       // never needed in dev runs.
@@ -585,6 +602,7 @@ async function bootstrap(): Promise<void> {
   registerIpcHandlers();
   wireEvents();
   initUpdater();
+  enrollBetaAutoLaunch();
   initAnalytics();
 
   const primaryDisplay = screen.getPrimaryDisplay();

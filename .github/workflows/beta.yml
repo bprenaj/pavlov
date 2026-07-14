@@ -1,0 +1,54 @@
+name: Beta Release
+
+# Continuous beta channel: every push to main builds the Windows installer
+# and publishes it to GitHub Releases as a prerelease, versioned
+# <next-patch>-beta.<run number> (always semver-newer than the last stable).
+#
+# electron-builder derives the update channel from the prerelease tag, so
+# these releases carry beta.yml as their update feed. Installed beta apps
+# (src/main/services/updater.ts, channelForVersion) follow that feed and
+# keep themselves current on every PC running the beta. Stable installs
+# read latest.yml from full releases only and never see these.
+#
+# The prerelease tag is created through the GitHub API with GITHUB_TOKEN,
+# which never triggers release.yml, so the two channels cannot recurse.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: beta-release
+  cancel-in-progress: false
+
+jobs:
+  beta:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: apps/pavlov-ow-electron-opus
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/pavlov-ow-electron-opus/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - name: Stamp beta version and prerelease publish type
+        shell: bash
+        run: |
+          BASE=$(node -p "const v = require('./package.json').version.split('-')[0].split('.'); v[2] = Number(v[2]) + 1; v.join('.')")
+          VERSION="${BASE}-beta.${GITHUB_RUN_NUMBER}"
+          echo "Publishing beta ${VERSION}"
+          npm pkg set version="${VERSION}"
+          npm pkg set build.publish.releaseType=prerelease
+      - run: npm run release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
