@@ -4,14 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' file: data:; script-src 'self'; media-src 'self' file:;">
-  <title>Pavlov</title>
+  <title>MapSense</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="app-shell">
     <aside class="side-nav">
       <div class="nav-brand">
-        <img src="assets/pavlov-main.jpg" alt="Pavlov" class="nav-avatar">
+        <img src="assets/mapsense-main.jpg" alt="MapSense" class="nav-avatar">
       </div>
       <button class="nav-item nav-active" data-page="coach" title="Coach">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
@@ -34,7 +34,7 @@
     <section class="main-area">
       <header id="titleBar" class="title-bar drag-region">
         <div class="title-left drag-region">
-          <h1 class="title-name">Pavlov</h1>
+          <h1 class="title-name">MapSense</h1>
           <span class="title-sub">Map awareness coach</span>
         </div>
         <div class="title-status no-drag">
@@ -49,7 +49,7 @@
       </header>
 
       <div id="updateBanner" class="update-banner" style="display:none;">
-        <span id="updateBannerText">A new version of Pavlov is ready.</span>
+        <span id="updateBannerText">A new version of MapSense is ready.</span>
         <div class="update-banner__actions">
           <button id="btnInstallUpdate" class="btn btn--accent btn--sm">Restart to Update</button>
           <button id="btnDismissUpdate" class="btn btn--ghost btn--sm">Later</button>
@@ -61,7 +61,7 @@
         <!-- ═══════ COACH PAGE ═══════ -->
         <section id="pageCoach" class="page page--active">
           <div id="coachHero" class="coach-hero">
-            <img src="assets/pavlov-header.jpg" alt="" class="coach-hero__img">
+            <img src="assets/mapsense-header.jpg" alt="" class="coach-hero__img">
             <div class="coach-hero__scrim"></div>
             <div class="coach-hero__text">
               <h2 class="coach-hero__title">Map Awareness Coach</h2>
@@ -70,9 +70,9 @@
           </div>
 
           <div id="regionGate" class="region-gate">
-            <img src="assets/pavlov-main.jpg" alt="Pavlov" class="gate-img">
-            <h2>Welcome to Pavlov</h2>
-            <p>Select your minimap region to begin training.<br>Pavlov will condition your map awareness like a reflex.</p>
+            <img src="assets/mapsense-main.jpg" alt="MapSense" class="gate-img">
+            <h2>Welcome to MapSense</h2>
+            <p>Select your minimap region to begin training.<br>MapSense will condition your map awareness like a reflex.</p>
             <button id="btnSelectRegionGate" class="btn btn--accent btn--lg">Mark Your Minimap</button>
           </div>
 
@@ -92,7 +92,7 @@
             <div class="training-row">
               <button id="btnStartTraining" class="btn btn--accent btn--lg">Start Training</button>
               <button id="btnStopTraining" class="btn btn--danger btn--lg" style="display:none;">Stop Training</button>
-              <button id="btnManualGlance" class="btn btn--outline" style="display:none;" title="Tell Pavlov you just checked the map.&#10;In Free mode, this replaces eye tracking.">I Checked the Map</button>
+              <button id="btnManualGlance" class="btn btn--outline" style="display:none;" title="Tell MapSense you just checked the map.&#10;In Free mode, this replaces eye tracking.">I Checked the Map</button>
               <div id="timerDisplay" class="timer" style="display:none;">
                 <span id="timerValue">0.0</span>s since last glance
               </div>
@@ -206,7 +206,7 @@
             <!-- Training Intensity -->
             <div class="s-card">
               <h3 class="s-card__title" title="How many seconds before the bell rings.&#10;Lower = stricter training. Set to 1 if you hate yourself.">Training Intensity</h3>
-              <p class="s-card__hint">Seconds before Pavlov rings the bell.</p>
+              <p class="s-card__hint">Seconds before MapSense rings the bell.</p>
               <div class="slider-row">
                 <input id="settingTimeout" type="range" min="0.5" max="300" step="0.5" value="5" class="slider" title="How many seconds before the bell rings. Lower = stricter training. Set to 0.5 if you hate yourself.">
                 <span id="settingTimeoutValue" class="slider-val">5s</span>
@@ -221,13 +221,13 @@
 
             <!-- Conditioning Method -->
             <div class="s-card">
-              <h3 class="s-card__title" title="Pick your conditioning method. Pavlov approves all of them.&#10;Combine Audio, Visual, and IRL for maximum stimulus.&#10;Or pick Silent if you just want to observe your bad habits.">Conditioning Method</h3>
-              <p class="s-card__hint">Pick how Pavlov reminds you. Combine for maximum stimulus.</p>
+              <h3 class="s-card__title" title="Pick your conditioning method. MapSense approves all of them.&#10;Combine Audio, Visual, and IRL for maximum stimulus.&#10;Or pick Silent if you just want to observe your bad habits.">Conditioning Method</h3>
+              <p class="s-card__hint">Pick how MapSense reminds you. Combine for maximum stimulus.</p>
               <div class="toggle-row" id="alertToggles">
-                <button class="toggle-pill" data-mode="silent" title="No bell, no flash, no shock collar.&#10;Pavlov watches silently and takes notes.&#10;Like a disappointed scientist.">Silent</button>
+                <button class="toggle-pill" data-mode="silent" title="No bell, no flash, no shock collar.&#10;MapSense watches silently and takes notes.&#10;Like a disappointed scientist.">Silent</button>
                 <button class="toggle-pill active" data-mode="audio" title="Ding ding ding. Forgot the minimap again?&#10;This alarm won't stop until you look.&#10;Good boy. Now check the map.">Audio</button>
-                <button class="toggle-pill" data-mode="visual" title="Flashes your minimap when you tunnel vision.&#10;Consider it a gentle nudge from Pavlov himself.&#10;Look at the map and it stops judging you.">Visual</button>
-                <button class="toggle-pill" data-mode="irl" title="Wire up a real buzzer, LED strip, or whatever cursed&#10;contraption you can dream up. Pavlov sends webhooks,&#10;your hardware does the rest. Pavlov would be proud.">IRL</button>
+                <button class="toggle-pill" data-mode="visual" title="Flashes your minimap when you tunnel vision.&#10;Consider it a gentle nudge from MapSense itself.&#10;Look at the map and it stops judging you.">Visual</button>
+                <button class="toggle-pill" data-mode="irl" title="Wire up a real buzzer, LED strip, or whatever cursed&#10;contraption you can dream up. MapSense sends webhooks,&#10;your hardware does the rest. MapSense would be proud.">IRL</button>
               </div>
               <div class="sub-links">
                 <button id="btnPickSound" class="btn-link" title="Upload your own alert sound. Rick roll yourself&#10;every time you forget the map. We don't judge.&#10;MP3, WAV, OGG, FLAC.">Custom Bell</button>
@@ -267,11 +267,11 @@
 
             <!-- IRL Hardware -->
             <div class="s-card">
-              <h3 class="s-card__title" title="Wire up a real buzzer, LED strip, or whatever cursed contraption you can dream up. Pavlov sends webhooks, your hardware does the rest.">IRL Hardware</h3>
+              <h3 class="s-card__title" title="Wire up a real buzzer, LED strip, or whatever cursed contraption you can dream up. MapSense sends webhooks, your hardware does the rest.">IRL Hardware</h3>
               <p class="s-card__hint">Connect a physical buzzer, LED, or flag via webhook.</p>
               <label class="chk" title="Enable the local webhook server for physical alert devices."><input type="checkbox" id="settingIrlEnabled"> Enabled</label>
               <div class="inline-row" style="margin-top:8px;">
-                <input id="settingIrlPort" type="number" value="9876" min="1024" max="65535" class="inp inp--sm" placeholder="Port" title="Local HTTP server port. GET /status for polling. Pavlov POSTs alert events to your webhook URL.">
+                <input id="settingIrlPort" type="number" value="9876" min="1024" max="65535" class="inp inp--sm" placeholder="Port" title="Local HTTP server port. GET /status for polling. MapSense POSTs alert events to your webhook URL.">
                 <input id="settingIrlUrl" type="text" placeholder="http://192.168.1.x:8080/alert" class="inp" title="URL that receives POST with JSON body {\"event\": \"alert_start\"} or {\"event\": \"alert_stop\"} when you forget the map.">
               </div>
               <div class="sub-links" style="margin-top:8px;">
@@ -281,30 +281,30 @@
 
             <!-- Quick Toggle -->
             <div class="s-card">
-              <h3 class="s-card__title" title="Start or stop training without switching to Pavlov.&#10;Useful when you're in-game and want to pause.">Quick Toggle</h3>
+              <h3 class="s-card__title" title="Start or stop training without switching to MapSense.&#10;Useful when you're in-game and want to pause.">Quick Toggle</h3>
               <p class="s-card__hint">Global hotkey to start/stop training from anywhere.</p>
-              <input id="settingHotkey" type="text" placeholder="Click here, then press key combo" class="inp inp--sm" readonly title="Records a key combination. Press Ctrl/Shift/Alt + a key. Works even when Pavlov is in the background.">
+              <input id="settingHotkey" type="text" placeholder="Click here, then press key combo" class="inp inp--sm" readonly title="Records a key combination. Press Ctrl/Shift/Alt + a key. Works even when MapSense is in the background.">
             </div>
 
             <!-- Privacy & Ads -->
             <div class="s-card">
-              <h3 class="s-card__title" title="Pavlov is free thanks to ad support. Go Pro for ad-free coaching with Beam Eye Tracker.">Privacy &amp; Ads</h3>
-              <p class="s-card__hint">Pavlov is free thanks to ad support. Go Pro for ad-free coaching with Beam Eye Tracker.</p>
+              <h3 class="s-card__title" title="MapSense is free thanks to ad support. Go Pro for ad-free coaching with Beam Eye Tracker.">Privacy &amp; Ads</h3>
+              <p class="s-card__hint">MapSense is free thanks to ad support. Go Pro for ad-free coaching with Beam Eye Tracker.</p>
               <div class="inline-row">
                 <button id="btnCmpSettings" class="btn btn--ghost btn--sm" title="Manage your ad and data consent preferences">Privacy Settings</button>
                 <span id="planLabel" class="hint">Plan: Free</span>
               </div>
-              <label class="chk" style="margin-top:12px;" title="Anonymous product usage only (which features you use, session length). Never your gaze, minimap region, or any personal data. Helps us improve Pavlov.">
+              <label class="chk" style="margin-top:12px;" title="Anonymous product usage only (which features you use, session length). Never your gaze, minimap region, or any personal data. Helps us improve MapSense.">
                 <input type="checkbox" id="settingAnalytics" checked> Send anonymous usage data
               </label>
             </div>
 
             <!-- Updates -->
             <div class="s-card">
-              <h3 class="s-card__title" title="Pavlov keeps itself up to date. Updates download in the background; you choose when to restart.">Updates</h3>
+              <h3 class="s-card__title" title="MapSense keeps itself up to date. Updates download in the background; you choose when to restart.">Updates</h3>
               <p class="s-card__hint">Updates download automatically. You decide when to restart.</p>
               <div class="inline-row">
-                <button id="btnCheckUpdates" class="btn btn--ghost btn--sm" title="Check GitHub for a newer version of Pavlov right now">Check for Updates</button>
+                <button id="btnCheckUpdates" class="btn btn--ghost btn--sm" title="Check GitHub for a newer version of MapSense right now">Check for Updates</button>
                 <span id="updateStatusLabel" class="hint">Up to date</span>
               </div>
               <p class="s-card__hint" style="margin-top:8px;">Version <span id="appVersionLabel">-</span></p>
@@ -321,9 +321,9 @@
     <div class="modal-bg"></div>
     <div class="modal-box">
       <div id="onboardingStep1" class="onboarding-step">
-        <img src="assets/pavlov-main.jpg" alt="Pavlov" class="ob-img">
-        <h2>Meet Pavlov</h2>
-        <p>Your personal map awareness coach. Pavlov trains you to check the minimap regularly, like a reflex.</p>
+        <img src="assets/mapsense-main.jpg" alt="MapSense" class="ob-img">
+        <h2>Meet MapSense</h2>
+        <p>Your personal map awareness coach. MapSense trains you to check the minimap regularly, like a reflex.</p>
         <button class="btn btn--accent" data-onboarding-next="2">Get Started</button>
       </div>
       <div id="onboardingStep2" class="onboarding-step" style="display:none;">
@@ -343,7 +343,7 @@
   <div id="proModal" class="modal" style="display:none;">
     <div class="modal-bg"></div>
     <div class="modal-box">
-      <h2>Pavlov Pro</h2>
+      <h2>MapSense Pro</h2>
       <p>Real gaze tracking with Beam Eye Tracker, the full coaching stat line, and zero ads.</p>
       <p class="hint">Try everything free for 7 days. No card needed.</p>
       <div class="update-banner__actions" style="justify-content:center; margin-top:14px;">

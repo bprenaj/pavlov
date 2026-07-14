@@ -1,8 +1,8 @@
-# Pavlov Electron Migration
+# MapSense Electron Migration
 
 ## Goal
 
-Refactor Pavlov from the legacy Python/PySide stack to a parallel ow-electron app while preserving behavior parity for coaching loops, session stats, and user settings.
+Refactor MapSense from the legacy Python/PySide stack to a parallel ow-electron app while preserving behavior parity for coaching loops, session stats, and user settings.
 
 ## Current Target
 
@@ -28,7 +28,7 @@ Refactor Pavlov from the legacy Python/PySide stack to a parallel ow-electron ap
 ## Architecture
 
 - **Main process**: app lifecycle, window management, IPC handlers, Beam bridge, session engine, alert manager, IRL webhook, tray
-- **Preload**: typed `pavlovApi` bridge via `contextBridge` (contextIsolation: true)
+- **Preload**: typed `mapSenseApi` bridge via `contextBridge` (contextIsolation: true)
 - **Renderer**: single `index.html` shell with Coach/History/Settings pages, no Node access
 - **Shared**: pure TypeScript modules (types, schemas, MAS calc, region math, game presets)
 - **Overlays**: separate transparent windows for region selection and alert flash

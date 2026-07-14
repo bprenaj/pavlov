@@ -17,7 +17,7 @@ interface TrainingState {
   running: boolean; mode: string; elapsedS: number; timeSinceLastGlanceS: number;
   alertActive: boolean; metrics: SessionMetrics; masScore: number;
 }
-interface PavlovSettings {
+interface MapSenseSettings {
   timeoutSeconds: number; volume: number; tolerancePx: number;
   alertModes: string[]; customSoundPath: string; minimapRect: MinimapRect | null;
   regionName: string; savedRegions: SavedRegion[]; hotkey: string;
@@ -29,12 +29,12 @@ interface UpdaterState {
 }
 interface AlertSound { soundPath: string; volume: number; }
 interface BootstrapPayload {
-  settings: PavlovSettings; entitlement: string; beamStatus: string; history: SessionRecord[];
+  settings: MapSenseSettings; entitlement: string; beamStatus: string; history: SessionRecord[];
   appVersion: string; updater: UpdaterState; installId: string;
 }
-interface PavlovApi {
+interface MapSenseApi {
   getBootstrap(): Promise<BootstrapPayload>;
-  patchSettings(patch: Partial<PavlovSettings>): Promise<PavlovSettings>;
+  patchSettings(patch: Partial<MapSenseSettings>): Promise<MapSenseSettings>;
   startTraining(): Promise<void>;
   stopTraining(): Promise<void>;
   markManualGlance(): Promise<void>;
@@ -46,7 +46,7 @@ interface PavlovApi {
   closeWindow(): void;
   checkCmpRequired(): Promise<boolean>;
   openCmpWindow(): Promise<void>;
-  applyPreset(key: string): Promise<PavlovSettings>;
+  applyPreset(key: string): Promise<MapSenseSettings>;
   checkForUpdates(): Promise<void>;
   installUpdate(): Promise<void>;
   track(event: string, props?: Record<string, unknown>): void;
@@ -59,9 +59,9 @@ interface PavlovApi {
   onStopAlert(cb: () => void): void;
 }
 
-const api = (window as unknown as { pavlovApi: PavlovApi }).pavlovApi;
+const api = (window as unknown as { mapSenseApi: MapSenseApi }).mapSenseApi;
 
-let currentSettings: PavlovSettings;
+let currentSettings: MapSenseSettings;
 let currentEntitlement = 'free';
 let historyRecords: SessionRecord[] = [];
 let chartInstance: { destroy: () => void } | null = null;
@@ -71,13 +71,13 @@ let selectedChartMetric = 'masScore';
 
 const DISCORD_URL = 'https://discord.gg/khk2dq8Bj3';
 const REDDIT_SHARE_BASE = 'https://www.reddit.com/r/leagueoflegends/submit';
-const IRL_AI_PROMPT = `I am using Pavlov (https://beameyetracker.com), a desktop app that trains minimap awareness for gamers using the Beam Eye Tracker. When I forget to check my minimap, Pavlov sends HTTP POST webhooks from localhost:9876 with JSON body {"event": "alert_start"} or {"event": "alert_stop"}. It also exposes GET http://localhost:9876/status for polling.
+const IRL_AI_PROMPT = `I am using MapSense (https://beameyetracker.com), a desktop app that trains minimap awareness for gamers using the Beam Eye Tracker. When I forget to check my minimap, MapSense sends HTTP POST webhooks from localhost:9876 with JSON body {"event": "alert_start"} or {"event": "alert_stop"}. It also exposes GET http://localhost:9876/status for polling.
 
 I want to build a creative, safe, desk-friendly physical alert gadget that lights up or makes noise when I get a webhook. Give me concise, exact, copy-paste-ready instructions for:
 1. Hardware shopping list (Raspberry Pi, Arduino, or ESP32 based)
 2. Wiring diagram for an LED strip, desk light, small buzzer, or mini flag
-3. Complete Python or Arduino code that listens for the Pavlov webhooks and activates the hardware
-4. How to connect the device to Pavlov on my local network
+3. Complete Python or Arduino code that listens for the MapSense webhooks and activates the hardware
+4. How to connect the device to MapSense on my local network
 
 Keep it practical, safe, and implementable in one sitting. No theory, just step-by-step build instructions.`;
 
@@ -140,7 +140,7 @@ function updateBeamStatus(status: string): void {
   }
 }
 
-function syncSettingsToUI(s: PavlovSettings): void {
+function syncSettingsToUI(s: MapSenseSettings): void {
   ($('settingMode') as HTMLSelectElement).value = s.trainingMode;
   ($('settingTimeout') as HTMLInputElement).value = String(s.timeoutSeconds);
   $('settingTimeoutValue').textContent = `${s.timeoutSeconds}s`;
@@ -168,7 +168,7 @@ function syncTogglePills(modes: string[]): void {
   });
 }
 
-function updateRegionUI(s: PavlovSettings): void {
+function updateRegionUI(s: MapSenseSettings): void {
   const hasRegion = !!s.minimapRect;
   $('regionGate').style.display = hasRegion ? 'none' : 'flex';
   $('coachContent').style.display = hasRegion ? 'block' : 'none';
@@ -221,7 +221,7 @@ function renderUpdaterState(state: UpdaterState): void {
   $('updateStatusLabel').textContent = updaterStatusText(state);
   const banner = $('updateBanner');
   if (state.status === 'ready' && !updateBannerDismissed) {
-    $('updateBannerText').textContent = `Pavlov v${state.availableVersion ?? ''} is ready to install.`;
+    $('updateBannerText').textContent = `MapSense v${state.availableVersion ?? ''} is ready to install.`;
     banner.style.display = 'flex';
   } else {
     banner.style.display = 'none';
@@ -251,7 +251,7 @@ function handleTogglePill(clicked: HTMLElement): void {
   patchSetting({ alertModes: collectAlertModes() });
 }
 
-async function patchSetting(patch: Partial<PavlovSettings>): Promise<void> {
+async function patchSetting(patch: Partial<MapSenseSettings>): Promise<void> {
   currentSettings = await api.patchSettings(patch);
   syncSettingsToUI(currentSettings);
 }
@@ -592,8 +592,8 @@ async function selectRegion(): Promise<void> {
 function shareReddit(): void {
   if (historyRecords.length === 0) return;
   const last = historyRecords[historyRecords.length - 1];
-  const title = `[Pavlov] My Map Awareness Score: ${last.masScore} | ${Math.round(last.durationS / 60)}min session`;
-  const text = `MAS: ${last.masScore}\nGlances/min: ${last.glancesPerMin}\nAvg response: ${last.avgGapS}s\nLongest blind: ${last.longestGapS}s\n\nTrained with Pavlov - the map awareness coach.`;
+  const title = `[MapSense] My Map Awareness Score: ${last.masScore} | ${Math.round(last.durationS / 60)}min session`;
+  const text = `MAS: ${last.masScore}\nGlances/min: ${last.glancesPerMin}\nAvg response: ${last.avgGapS}s\nLongest blind: ${last.longestGapS}s\n\nTrained with MapSense - the map awareness coach.`;
   window.open(`${REDDIT_SHARE_BASE}?type=TEXT&title=${encodeURIComponent(title)}&text=${encodeURIComponent(text)}`, '_blank');
 }
 

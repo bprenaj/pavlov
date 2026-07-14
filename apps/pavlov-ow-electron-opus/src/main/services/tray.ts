@@ -3,7 +3,7 @@ import * as path from 'path';
 import type { BeamStatus } from '../../shared/constants';
 import type { UpdaterState } from '../../shared/types';
 
-// Branded Pavlov tray icons with a status bubble baked in (generated at
+// Branded MapSense tray icons with a status bubble baked in (generated at
 // build time into dist/main/assets). NOTE: nativeImage.createFromBuffer
 // only decodes PNG/JPEG -- the old raw-RGBA buffer approach produced an
 // empty image and an invisible tray icon.
@@ -46,7 +46,7 @@ export class TrayManager {
   create(mainWindow: BrowserWindow): void {
     this.mainWindow = mainWindow;
     this.tray = new Tray(trayIconFor(this.status));
-    this.tray.setToolTip(`Pavlov - Map Awareness Coach\n${statusLabelFor(this.status)}`);
+    this.tray.setToolTip(`MapSense - Map Awareness Coach\n${statusLabelFor(this.status)}`);
     this.updateMenu();
 
     // Windows convention: a single left-click opens the app.
@@ -68,7 +68,7 @@ export class TrayManager {
     if (this.hiddenNoticeShown || !this.tray || process.platform !== 'win32') return;
     this.hiddenNoticeShown = true;
     this.tray.displayBalloon({
-      title: 'Pavlov is still running',
+      title: 'MapSense is still running',
       content: 'Training keeps going in the tray. Click the icon to reopen, right-click to quit.',
       iconType: 'info',
     });
@@ -78,7 +78,7 @@ export class TrayManager {
     this.status = status;
     if (this.tray) {
       this.tray.setImage(trayIconFor(status));
-      this.tray.setToolTip(`Pavlov - Map Awareness Coach\n${statusLabelFor(status)}`);
+      this.tray.setToolTip(`MapSense - Map Awareness Coach\n${statusLabelFor(status)}`);
       this.updateMenu();
     }
   }
@@ -95,7 +95,7 @@ export class TrayManager {
     const statusLabel = statusLabelFor(this.status);
 
     const template: Electron.MenuItemConstructorOptions[] = [
-      { label: 'Pavlov', enabled: false },
+      { label: 'MapSense', enabled: false },
       { type: 'separator' },
       { label: statusLabel, enabled: false },
       { type: 'separator' },

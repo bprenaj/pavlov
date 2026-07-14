@@ -117,7 +117,7 @@ describe('Smoke Tests', () => {
 
   it('main process is hardened: single instance, crash logging, file logger', () => {
     const main = fs.readFileSync(path.join(ROOT, 'src', 'main', 'index.ts'), 'utf-8');
-    // One tray icon, one updater, one IRL port: never two Pavlov processes.
+    // One tray icon, one updater, one IRL port: never two MapSense processes.
     expect(main).toContain('requestSingleInstanceLock');
     expect(main).toContain('second-instance');
     // Crashes must leave a trace, not a silent death or raw dialog.

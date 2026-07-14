@@ -89,7 +89,7 @@ export class IrlWebhook {
 
   private sendEvent(event: string): void {
     if (!this.webhookUrl) return;
-    const payload = JSON.stringify({ event, source: 'Pavlov' });
+    const payload = JSON.stringify({ event, source: 'MapSense' });
 
     try {
       const url = new URL(this.webhookUrl);

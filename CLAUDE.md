@@ -1,4 +1,4 @@
-# Pavlov / MapSense - Project Instructions
+# MapSense - Project Instructions
 
 > **ABSOLUTE RULE (all SwissTropic projects): NO EM DASHES. EVER.** Not in UI copy, docs, comments, commit messages, release notes, or anywhere else. Use a comma, period, parentheses, or plain hyphen instead. CI enforces this (`tests/e2e/smoke.test.ts`); never weaken that test.
 
@@ -8,14 +8,14 @@
 
 - **Active stack:** Electron + ow-electron + TypeScript
 - **Legacy stack:** Python + PySide6
-- **Primary product name:** Pavlov
+- **Primary product name:** MapSense (earlier working names Pavlov and "Pavlov's Bell" are retired)
 - **Free mode requirement:** timer-based cues must stay fully functional without Beam
 - **Paid mode requirement:** Beam gaze-driven coaching is gated by subscription entitlement
 - **Monetization direction:** Overwolf-first (`owadview`, CMP flow, Overwolf distribution path)
 
 ### UX and Terminology Guardrails
 
-- App name in user-facing UI is **Pavlov** (not "Pavlov's Bell").
+- App name in user-facing UI is **MapSense** (not "Pavlov" or "Pavlov's Bell").
 - Say **Beam Eye Tracker** in UI text for clarity.
 - Keep wording close to legacy intent; avoid novelty renaming of familiar controls.
 - Keep first-run onboarding and region-first guidance flow.
@@ -409,6 +409,9 @@ Lint runs clean with zero warnings; keep it that way.
 
 Packaged runs mirror all console output to `%APPDATA%/Pavlov/logs/main.log`
 (512KB rotation, one `.1` generation kept; `src/main/services/logger.ts`).
+The folder is intentionally still `Pavlov` (not `MapSense`): storage is pinned
+to it across the rename so existing installs keep their settings and history
+(see `APP_DATA_DIR` and the `userData` pin in `src/main/index.ts`).
 When a user reports a bug, ask for that file first. Uncaught exceptions,
 unhandled rejections, and renderer crashes are logged there too.
 
@@ -417,7 +420,7 @@ unhandled rejections, and renderer crashes are logged there too.
 ```bash
 cd apps/pavlov-ow-electron-opus
 npm run package                      # NSIS installer + win-unpacked into release/
-./release/win-unpacked/Pavlov.exe    # must open the window, tray, and quit cleanly
+./release/win-unpacked/MapSense.exe    # must open the window, tray, and quit cleanly
 ```
 
 ## Releases & Auto-Update

@@ -1,6 +1,6 @@
 {
   "name": "pavlov",
-  "productName": "Pavlov",
+  "productName": "MapSense",
   "version": "1.0.3",
   "description": "Map awareness coach for competitive gamers",
   "author": "SwissTropic (swisstropicventures.com)",
@@ -51,7 +51,7 @@
   },
   "build": {
     "appId": "com.swisstropic.pavlov",
-    "productName": "Pavlov",
+    "productName": "MapSense",
     "icon": "build/icon.ico",
     "directories": {
       "output": "release"
@@ -78,7 +78,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Pavlov",
+      "shortcutName": "MapSense",
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico"
     },

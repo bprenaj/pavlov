@@ -144,7 +144,7 @@ export class BeamBridge {
       point_11: { x: screenWidth, y: screenHeight },
     };
     const handleOut: unknown[] = [null];
-    const result = this.api.Create!('Pavlov', viewport, handleOut);
+    const result = this.api.Create!('MapSense', viewport, handleOut);
     if (result !== 0 || !handleOut[0]) {
       this.emitError(`EW_BET_API_Create failed with code ${result}`);
       return false;

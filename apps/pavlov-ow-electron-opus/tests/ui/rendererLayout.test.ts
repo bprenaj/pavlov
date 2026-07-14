@@ -36,10 +36,10 @@ describe('Renderer Layout', () => {
     expect(pages).toContain('settings');
   });
 
-  it('has Pavlov avatar in sidebar', () => {
+  it('has MapSense avatar in sidebar', () => {
     const img = document.querySelector('.nav-avatar') as HTMLImageElement;
     expect(img).not.toBeNull();
-    expect(img.alt).toBe('Pavlov');
+    expect(img.alt).toBe('MapSense');
   });
 
   it('has three page sections', () => {

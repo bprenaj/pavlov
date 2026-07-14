@@ -28,9 +28,9 @@ if (existsSync(assetDir)) {
 }
 
 const imageMap = {
-  "Pavlov's Bell - Main Image.jpg": 'pavlov-main.jpg',
+  'mapsense-main.jpg': 'mapsense-main.jpg',
   // Pre-cropped: character + circuit art only, no baked-in store text
-  'pavlov-header-cropped.jpg': 'pavlov-header.jpg',
+  'mapsense-header.jpg': 'mapsense-header.jpg',
 };
 
 for (const [from, to] of Object.entries(imageMap)) {

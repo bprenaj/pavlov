@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { LEGACY_DATA_DIR, APP_DATA_DIR } from '../../shared/constants';
 import { safeParseSettings, safeParseSessionRecords } from '../../shared/schemas';
-import type { PavlovSettings, SessionRecord } from '../../shared/types';
+import type { MapSenseSettings, SessionRecord } from '../../shared/types';
 
 function legacyDir(): string {
   const base = process.env.APPDATA || path.join(process.env.USERPROFILE || '', 'AppData', 'Roaming');
@@ -81,7 +81,7 @@ export function migrateLegacyData(): MigrationResult {
   return result;
 }
 
-function mapLegacySettings(raw: Record<string, unknown>): PavlovSettings {
+function mapLegacySettings(raw: Record<string, unknown>): MapSenseSettings {
   const mapped: Record<string, unknown> = {};
 
   if (typeof raw.timeout_seconds === 'number') mapped.timeoutSeconds = raw.timeout_seconds;
@@ -122,7 +122,7 @@ function mapLegacyHistory(raw: unknown): SessionRecord[] {
   );
 }
 
-export function getLegacySettings(): PavlovSettings | null {
+export function getLegacySettings(): MapSenseSettings | null {
   const raw = readJsonSafe(path.join(legacyDir(), 'settings.json'));
   if (!raw) return null;
   return mapLegacySettings(raw as Record<string, unknown>);

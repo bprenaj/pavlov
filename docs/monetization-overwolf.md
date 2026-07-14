@@ -1,8 +1,8 @@
-# Pavlov Overwolf Monetization
+# MapSense Overwolf Monetization
 
 ## Strategy
 
-Pavlov follows an Overwolf-first freemium model:
+MapSense follows an Overwolf-first freemium model:
 
 - **Free tier:** timer-based coaching + ad-supported surfaces.
 - **Paid tier:** Beam-powered coaching, advanced gaze-based stats, subscription entitlement.

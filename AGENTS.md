@@ -1,4 +1,4 @@
-# Pavlov - Agent Operating Guide
+# MapSense - Agent Operating Guide
 
 > **ABSOLUTE RULE: NO EM DASHES. EVER.** Anywhere: copy, docs, comments, commits, notes. Use comma, period, parentheses, or plain hyphen. Enforced by the e2e smoke test.
 
@@ -11,13 +11,13 @@
 
 ## Product Direction
 
-- Product name is **Pavlov**.
+- Product name is **MapSense**. (Earlier working names Pavlov and "Pavlov's Bell" are retired.)
 - Audience is competitive gamers (roughly 12-25), especially LoL and similar titles.
 - Voice is confident and slightly arrogant, but playful and not cringe.
 - Use **Beam Eye Tracker** wording in UI copy (avoid shortening to just "Beam" in user-facing text).
 - Keep labels close to legacy meaning; avoid random fluff renaming that harms clarity.
-- Pavlov metaphor:
-  - Pavlov = the coach
+- Conditioning metaphor (Pavlov the scientist stands in for MapSense the app):
+  - MapSense = the coach
   - Bell = cue
   - Player = trainee
   - Minimap checks = rewarded habit loop
@@ -60,7 +60,7 @@
   - `tests/integration` for session engine (free mode and paid mode)
   - `tests/ui` for renderer DOM structure (all elements, metrics, onboarding, update banner, pro modal)
   - `tests/e2e` for smoke (file existence, script validity, HTML references, update wiring, no debug cruft)
-- Before cutting a release, run the packaged smoke test: `npm run package`, launch `release/win-unpacked/Pavlov.exe`, confirm the window opens and quits cleanly
+- Before cutting a release, run the packaged smoke test: `npm run package`, launch `release/win-unpacked/MapSense.exe`, confirm the window opens and quits cleanly
 
 ## Auto-Update
 

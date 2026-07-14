@@ -1,35 +1,35 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { PavlovApi } from '../shared/types';
+import type { MapSenseApi } from '../shared/types';
 import type { EntitlementTier } from '../shared/constants';
 
 const CH = {
-  GET_BOOTSTRAP: 'pavlov:getBootstrap',
-  PATCH_SETTINGS: 'pavlov:patchSettings',
-  START_TRAINING: 'pavlov:startTraining',
-  STOP_TRAINING: 'pavlov:stopTraining',
-  MARK_MANUAL_GLANCE: 'pavlov:markManualGlance',
-  SET_ENTITLEMENT: 'pavlov:setEntitlement',
-  PICK_CUSTOM_SOUND: 'pavlov:pickCustomSound',
-  OPEN_REGION_OVERLAY: 'pavlov:openRegionOverlay',
-  CLEAR_HISTORY: 'pavlov:clearHistory',
-  MINIMIZE_WINDOW: 'pavlov:minimizeWindow',
-  CLOSE_WINDOW: 'pavlov:closeWindow',
-  CHECK_CMP_REQUIRED: 'pavlov:checkCmpRequired',
-  OPEN_CMP_WINDOW: 'pavlov:openCmpWindow',
-  APPLY_PRESET: 'pavlov:applyPreset',
-  UPDATER_CHECK: 'pavlov:updaterCheck',
-  UPDATER_INSTALL: 'pavlov:updaterInstall',
-  TRACK_EVENT: 'pavlov:trackEvent',
-  SET_ANALYTICS_OPTOUT: 'pavlov:setAnalyticsOptOut',
-  ON_STATE: 'pavlov:onState',
-  ON_BEAM_STATUS: 'pavlov:onBeamStatus',
-  ON_SESSION_COMPLETE: 'pavlov:onSessionComplete',
-  ON_UPDATER_STATE: 'pavlov:onUpdaterState',
-  PLAY_ALERT: 'pavlov:playAlert',
-  STOP_ALERT: 'pavlov:stopAlert',
+  GET_BOOTSTRAP: 'mapsense:getBootstrap',
+  PATCH_SETTINGS: 'mapsense:patchSettings',
+  START_TRAINING: 'mapsense:startTraining',
+  STOP_TRAINING: 'mapsense:stopTraining',
+  MARK_MANUAL_GLANCE: 'mapsense:markManualGlance',
+  SET_ENTITLEMENT: 'mapsense:setEntitlement',
+  PICK_CUSTOM_SOUND: 'mapsense:pickCustomSound',
+  OPEN_REGION_OVERLAY: 'mapsense:openRegionOverlay',
+  CLEAR_HISTORY: 'mapsense:clearHistory',
+  MINIMIZE_WINDOW: 'mapsense:minimizeWindow',
+  CLOSE_WINDOW: 'mapsense:closeWindow',
+  CHECK_CMP_REQUIRED: 'mapsense:checkCmpRequired',
+  OPEN_CMP_WINDOW: 'mapsense:openCmpWindow',
+  APPLY_PRESET: 'mapsense:applyPreset',
+  UPDATER_CHECK: 'mapsense:updaterCheck',
+  UPDATER_INSTALL: 'mapsense:updaterInstall',
+  TRACK_EVENT: 'mapsense:trackEvent',
+  SET_ANALYTICS_OPTOUT: 'mapsense:setAnalyticsOptOut',
+  ON_STATE: 'mapsense:onState',
+  ON_BEAM_STATUS: 'mapsense:onBeamStatus',
+  ON_SESSION_COMPLETE: 'mapsense:onSessionComplete',
+  ON_UPDATER_STATE: 'mapsense:onUpdaterState',
+  PLAY_ALERT: 'mapsense:playAlert',
+  STOP_ALERT: 'mapsense:stopAlert',
 } as const;
 
-const api: PavlovApi = {
+const api: MapSenseApi = {
   getBootstrap: () => ipcRenderer.invoke(CH.GET_BOOTSTRAP),
   patchSettings: (patch) => ipcRenderer.invoke(CH.PATCH_SETTINGS, patch),
   startTraining: () => ipcRenderer.invoke(CH.START_TRAINING),
@@ -70,4 +70,4 @@ const api: PavlovApi = {
   },
 };
 
-contextBridge.exposeInMainWorld('pavlovApi', api);
+contextBridge.exposeInMainWorld('mapSenseApi', api);

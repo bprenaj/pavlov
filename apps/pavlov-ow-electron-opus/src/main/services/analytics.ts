@@ -5,7 +5,7 @@ import {
 import type { AnalyticsEvent } from '../../shared/constants';
 
 /**
- * Anonymous product analytics for Pavlov, sent from the MAIN process only
+ * Anonymous product analytics for MapSense, sent from the MAIN process only
  * (the renderer CSP forbids remote SDKs). PostHog is the backend, but every
  * event passes through this service's two guards first:
  *

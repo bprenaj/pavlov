@@ -1,25 +1,40 @@
 import { randomUUID } from 'crypto';
+import * as path from 'path';
 import Store from 'electron-store';
 import { safeParseSettings, safeParseSessionRecords } from '../../shared/schemas';
-import type { PavlovSettings, SessionRecord } from '../../shared/types';
+import { APP_DATA_DIR } from '../../shared/constants';
+import type { MapSenseSettings, SessionRecord } from '../../shared/types';
 
+// Pin storage to %APPDATA%/Pavlov (APP_DATA_DIR) instead of letting
+// electron-store derive it from the app name. This store is constructed at
+// import time, before app.setName runs, and the app now reports 'MapSense';
+// without this pin the config would move to %APPDATA%/MapSense and every
+// existing install would look factory-fresh. Mirrors migration.ts's resolver.
+function storeCwd(): string {
+  const base = process.env.APPDATA || path.join(process.env.USERPROFILE || '', 'AppData', 'Roaming');
+  return path.join(base, APP_DATA_DIR);
+}
+
+// The config filename stays 'pavlov-config' for the same continuity reason:
+// it is the file existing installs already have on disk.
 const store = new Store({
   name: 'pavlov-config',
+  cwd: storeCwd(),
   defaults: {
     settings: {},
     history: [],
   },
 });
 
-export function loadSettings(): PavlovSettings {
+export function loadSettings(): MapSenseSettings {
   return safeParseSettings(store.get('settings'));
 }
 
-export function saveSettings(settings: PavlovSettings): void {
+export function saveSettings(settings: MapSenseSettings): void {
   store.set('settings', settings);
 }
 
-export function patchSettings(patch: Partial<PavlovSettings>): PavlovSettings {
+export function patchSettings(patch: Partial<MapSenseSettings>): MapSenseSettings {
   const current = loadSettings();
   const merged = { ...current, ...patch };
   saveSettings(merged);

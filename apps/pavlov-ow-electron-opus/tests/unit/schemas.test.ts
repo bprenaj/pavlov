@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  PavlovSettingsSchema,
+  MapSenseSettingsSchema,
   MinimapRectSchema,
   SessionRecordSchema,
   safeParseSettings,
@@ -22,9 +22,9 @@ describe('MinimapRectSchema', () => {
   });
 });
 
-describe('PavlovSettingsSchema', () => {
+describe('MapSenseSettingsSchema', () => {
   it('fills defaults for empty object', () => {
-    const settings = PavlovSettingsSchema.parse({});
+    const settings = MapSenseSettingsSchema.parse({});
     expect(settings.timeoutSeconds).toBe(5);
     expect(settings.volume).toBe(50);
     expect(settings.firstRun).toBe(true);
@@ -34,7 +34,7 @@ describe('PavlovSettingsSchema', () => {
   });
 
   it('accepts full valid settings', () => {
-    const full = PavlovSettingsSchema.parse({
+    const full = MapSenseSettingsSchema.parse({
       timeoutSeconds: 10,
       volume: 80,
       tolerancePx: 20,
@@ -55,11 +55,11 @@ describe('PavlovSettingsSchema', () => {
   });
 
   it('rejects timeout below minimum', () => {
-    expect(() => PavlovSettingsSchema.parse({ timeoutSeconds: 0.25 })).toThrow();
+    expect(() => MapSenseSettingsSchema.parse({ timeoutSeconds: 0.25 })).toThrow();
   });
 
   it('accepts timeout of 0.5 seconds', () => {
-    const s = PavlovSettingsSchema.parse({ timeoutSeconds: 0.5 });
+    const s = MapSenseSettingsSchema.parse({ timeoutSeconds: 0.5 });
     expect(s.timeoutSeconds).toBe(0.5);
   });
 });

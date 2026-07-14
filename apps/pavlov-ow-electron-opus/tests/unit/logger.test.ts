@@ -7,7 +7,7 @@ import { FileLogger, formatLine } from '../../src/main/services/logger';
 let dir: string;
 
 beforeEach(() => {
-  dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pavlov-logger-'));
+  dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mapsense-logger-'));
 });
 
 afterEach(() => {

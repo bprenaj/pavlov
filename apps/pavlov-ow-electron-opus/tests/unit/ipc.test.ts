@@ -8,9 +8,9 @@ describe('IPC channel constants', () => {
     expect(unique.size).toBe(values.length);
   });
 
-  it('all channels are prefixed with pavlov: or overlay:', () => {
+  it('all channels are prefixed with mapsense: or overlay:', () => {
     for (const value of Object.values(IPC)) {
-      expect(value.startsWith('pavlov:') || value.startsWith('overlay:')).toBe(true);
+      expect(value.startsWith('mapsense:') || value.startsWith('overlay:')).toBe(true);
     }
   });
 

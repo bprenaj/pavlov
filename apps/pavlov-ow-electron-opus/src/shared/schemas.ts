@@ -16,7 +16,7 @@ export const AlertModeSchema = z.enum(['silent', 'visual', 'audio', 'irl']);
 
 export const TrainingModeSchema = z.enum(['free', 'paid']);
 
-export const PavlovSettingsSchema = z.object({
+export const MapSenseSettingsSchema = z.object({
   timeoutSeconds: z.number().min(0.5).max(300).default(5),
   volume: z.number().min(0).max(100).default(50),
   tolerancePx: z.number().min(0).max(200).default(10),
@@ -49,14 +49,14 @@ export const SessionRecordSchema = z.object({
   regionName: z.string(),
 });
 
-export function parseSettings(raw: unknown): z.infer<typeof PavlovSettingsSchema> {
-  return PavlovSettingsSchema.parse(raw);
+export function parseSettings(raw: unknown): z.infer<typeof MapSenseSettingsSchema> {
+  return MapSenseSettingsSchema.parse(raw);
 }
 
 export function safeParseSettings(raw: unknown) {
-  const result = PavlovSettingsSchema.safeParse(raw);
+  const result = MapSenseSettingsSchema.safeParse(raw);
   if (result.success) return result.data;
-  return PavlovSettingsSchema.parse({});
+  return MapSenseSettingsSchema.parse({});
 }
 
 export function parseSessionRecord(raw: unknown) {

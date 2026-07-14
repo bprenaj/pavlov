@@ -21,7 +21,7 @@ export interface GamePreset {
   description: string;
 }
 
-export interface PavlovSettings {
+export interface MapSenseSettings {
   timeoutSeconds: number;
   volume: number;
   tolerancePx: number;
@@ -94,7 +94,7 @@ export interface AlertSound {
 }
 
 export interface BootstrapPayload {
-  settings: PavlovSettings;
+  settings: MapSenseSettings;
   entitlement: EntitlementTier;
   beamStatus: BeamStatus;
   history: SessionRecord[];
@@ -103,9 +103,9 @@ export interface BootstrapPayload {
   installId: string;
 }
 
-export interface PavlovApi {
+export interface MapSenseApi {
   getBootstrap(): Promise<BootstrapPayload>;
-  patchSettings(patch: Partial<PavlovSettings>): Promise<PavlovSettings>;
+  patchSettings(patch: Partial<MapSenseSettings>): Promise<MapSenseSettings>;
   startTraining(): Promise<void>;
   stopTraining(): Promise<void>;
   markManualGlance(): Promise<void>;
@@ -117,7 +117,7 @@ export interface PavlovApi {
   closeWindow(): void;
   checkCmpRequired(): Promise<boolean>;
   openCmpWindow(): Promise<void>;
-  applyPreset(key: string): Promise<PavlovSettings>;
+  applyPreset(key: string): Promise<MapSenseSettings>;
   checkForUpdates(): Promise<void>;
   installUpdate(): Promise<void>;
   track(event: string, props?: Record<string, unknown>): void;

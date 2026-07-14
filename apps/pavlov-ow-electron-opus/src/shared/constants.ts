@@ -1,5 +1,12 @@
-export const APP_NAME = 'Pavlov';
+export const APP_NAME = 'MapSense';
+// Install identity kept as the historical 'pavlov' id across the MapSense
+// rename so existing installs upgrade in place (NSIS and auto-update key off
+// this) instead of installing side by side. Do not change without a migration.
 export const APP_ID = 'com.swisstropic.pavlov';
+// On-disk storage stays in the historical 'Pavlov' folder (%APPDATA%/Pavlov) so
+// existing installs keep their settings and history after the rename. It also
+// must stay distinct from LEGACY_DATA_DIR ('MapSense', the old PySide app's
+// folder we migrate from) to avoid a read/write collision.
 export const APP_DATA_DIR = 'Pavlov';
 export const LEGACY_DATA_DIR = 'MapSense';
 

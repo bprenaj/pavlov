@@ -35,8 +35,9 @@ import { fileLogger } from './services/logger';
 import { createOverlayWindow } from './services/overlayFactory';
 import { getPreset, presetToRect } from '../shared/gamePresets';
 import { POSTHOG_KEY, POSTHOG_HOST, isAnalyticsConfigured } from '../shared/analyticsConfig';
+import { APP_DATA_DIR } from '../shared/constants';
 import type { EntitlementTier, TrainingMode } from '../shared/constants';
-import type { MinimapRect, PavlovSettings } from '../shared/types';
+import type { MinimapRect, MapSenseSettings } from '../shared/types';
 
 let mainWindow: BrowserWindow | null = null;
 let alertOverlayWindow: BrowserWindow | null = null;
@@ -86,11 +87,11 @@ function getRendererPath(file: string): string {
 }
 
 /** Paid coaching requires entitlement; everything else falls back to free. */
-function effectiveTrainingMode(settings: PavlovSettings): TrainingMode {
+function effectiveTrainingMode(settings: MapSenseSettings): TrainingMode {
   return settings.trainingMode === 'paid' && isPaid() ? 'paid' : 'free';
 }
 
-function configureSession(settings: PavlovSettings): void {
+function configureSession(settings: MapSenseSettings): void {
   sessionEngine.configure({
     mode: effectiveTrainingMode(settings),
     timeoutS: settings.timeoutSeconds,
@@ -169,7 +170,7 @@ function createAlertOverlay(): BrowserWindow {
   const { width, height } = primaryDisplay.workAreaSize;
 
   const win = createOverlayWindow({
-    name: 'pavlov-alert',
+    name: 'mapsense-alert',
     width,
     height,
     x: 0,
@@ -210,7 +211,7 @@ function createRegionOverlay(): Promise<MinimapRect | null> {
     const { width, height } = primaryDisplay.size;
 
     regionOverlayWindow = createOverlayWindow({
-      name: 'pavlov-region',
+      name: 'mapsense-region',
       width,
       height,
       x: 0,
@@ -325,7 +326,7 @@ function registerIpcHandlers(): void {
     installId: getInstallId(),
   }));
 
-  ipcMain.handle(IPC.PATCH_SETTINGS, (_e, patch: Partial<PavlovSettings>) => {
+  ipcMain.handle(IPC.PATCH_SETTINGS, (_e, patch: Partial<MapSenseSettings>) => {
     const updated = patchSettings(patch);
     applySettings(updated);
     return updated;
@@ -440,7 +441,7 @@ function registerIpcHandlers(): void {
   });
 }
 
-function applySettings(settings: PavlovSettings): void {
+function applySettings(settings: MapSenseSettings): void {
   irlWebhook.configure(settings.irlEnabled, settings.irlPort, settings.irlWebhookUrl);
   alertManager.configure(settings.alertModes, settings.volume, settings.customSoundPath);
 
@@ -596,8 +597,20 @@ async function bootstrap(): Promise<void> {
 // that ties taskbar grouping and toasts to the installed shortcut. Setting
 // the AUMID without that shortcut (dev runs) makes the taskbar fall back to
 // the exe icon, so only set it when packaged.
-app.setName('Pavlov');
+app.setName('MapSense');
+// Storage stays in %APPDATA%/Pavlov (APP_DATA_DIR) after the MapSense rename so
+// existing installs keep their settings, history, and logs. setName above would
+// otherwise repoint userData at %APPDATA%/MapSense. The store pins its own cwd
+// too (it is built before this line runs); this covers logs and everything else
+// that reads userData at runtime.
+{
+  const base = process.env.APPDATA || path.join(process.env.USERPROFILE || '', 'AppData', 'Roaming');
+  app.setPath('userData', path.join(base, APP_DATA_DIR));
+}
 if (app.isPackaged) {
+  // AUMID kept as the historical 'pavlov' id so existing installs upgrade in
+  // place (auto-update and taskbar grouping key off it) rather than appearing
+  // as a separate app after the rename.
   app.setAppUserModelId('com.swisstropic.pavlov');
 }
 
@@ -634,7 +647,7 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 app.on('window-all-closed', () => {
-  // Keep running: Pavlov lives in the tray while training.
+  // Keep running: MapSense lives in the tray while training.
 });
 
 let quitStarted = false;
