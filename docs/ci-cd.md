@@ -84,22 +84,32 @@ download buttons. It queries the public GitHub Releases API from the
 browser, so it always links the newest installers without a redeploy.
 Deploys only happen when `site/**` changes.
 
+The site lives at **https://getmapsense.com** (domain registered on
+Cloudflare, zone in the same account). The workflow is fully
+self-provisioning and idempotent: on every run it ensures the Pages
+project exists, deploys, attaches `getmapsense.com` and
+`www.getmapsense.com` to the project, and creates the proxied CNAME
+records pointing at `pavlov.pages.dev`. Existing DNS records that point
+somewhere else are never clobbered (it warns instead).
+
 ### One-time Cloudflare setup
 
-1. Create the Pages project (either in the Cloudflare dashboard under
-   Workers & Pages, or `npx wrangler pages project create pavlov`).
-2. Create an API token with the "Cloudflare Pages: Edit" permission
-   (dashboard: My Profile > API Tokens).
-3. Add two repository secrets in GitHub (Settings > Secrets and
+1. Create an API token (dashboard: My Profile > API Tokens) with:
+   - Account > Cloudflare Pages > Edit
+   - Zone > Zone > Read (for getmapsense.com)
+   - Zone > DNS > Edit (for getmapsense.com)
+2. Add two repository secrets in GitHub (Settings > Secrets and
    variables > Actions):
    - `CLOUDFLARE_API_TOKEN`
    - `CLOUDFLARE_ACCOUNT_ID` (dashboard right sidebar, or `npx wrangler whoami`)
-4. Push to main (or run the "Deploy Site" workflow manually). The site
-   lands at `https://pavlov.pages.dev`; add a custom domain from the
-   Pages project settings if wanted.
+3. Push to main (or run the "Deploy Site" workflow manually). The
+   workflow creates the project, deploys, and wires up the domain.
 
 Until the secrets exist the deploy workflow skips with a warning instead
-of failing, so CI stays green on forks and fresh clones.
+of failing, so CI stays green on forks and fresh clones. If the token
+lacks the zone permissions, the deploy still succeeds and the site stays
+reachable at `https://pavlov.pages.dev`; the workflow warns that the
+domain was not attached.
 
 ## Guardrails
 

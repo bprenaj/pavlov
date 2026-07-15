@@ -449,10 +449,12 @@ installs (version contains `-beta`) follow that feed, register launch-at-login
 once, and keep themselves current automatically. Stable installs never see
 prereleases. Full pipeline docs: [`docs/ci-cd.md`](docs/ci-cd.md).
 
-**Download site:** `site/index.html` deploys to Cloudflare Pages
-(`.github/workflows/pages.yml`, needs `CLOUDFLARE_API_TOKEN` +
-`CLOUDFLARE_ACCOUNT_ID` repo secrets). It reads the GitHub Releases API in
-the browser, so it always offers the newest stable and beta installers.
+**Download site:** `site/index.html` deploys to Cloudflare Pages at
+**https://getmapsense.com** (`.github/workflows/pages.yml`, needs
+`CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` repo secrets; the workflow
+self-provisions the Pages project, the custom domain, and DNS). It reads the
+GitHub Releases API in the browser, so it always offers the newest stable and
+beta installers.
 
 > **Install gotcha (March 2026):** `@overwolf/ow-electron` must stay on a
 > version whose runtime binary is still downloadable (403s otherwise). Pinned

@@ -183,8 +183,12 @@ describe('Smoke Tests', () => {
     expect(fs.existsSync(sitePath)).toBe(true);
     const site = fs.readFileSync(sitePath, 'utf-8');
     expect(site).toContain('bprenaj/pavlov');
+    expect(site).toContain('https://getmapsense.com/');
     const pagesWf = path.join(ROOT, '..', '..', '.github', 'workflows', 'pages.yml');
     expect(fs.existsSync(pagesWf)).toBe(true);
+    // The deploy must keep the custom domain attached and resolvable.
+    const wf = fs.readFileSync(pagesWf, 'utf-8');
+    expect(wf).toContain('SITE_DOMAIN: getmapsense.com');
   });
 
   it('NO EM DASHES anywhere in app source or copy (SwissTropic hard rule)', () => {
