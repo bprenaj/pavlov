@@ -1,8 +1,8 @@
-# Pavlov Overwolf Monetization
+# MapSense Overwolf Monetization
 
 ## Strategy
 
-Pavlov follows an Overwolf-first freemium model:
+MapSense follows an Overwolf-first freemium model:
 
 - **Free tier:** timer-based coaching + ad-supported surfaces.
 - **Paid tier:** Beam-powered coaching, advanced gaze-based stats, subscription entitlement.
@@ -22,7 +22,7 @@ The remaining steps, in order:
 
 1. **Get the app uid.** Run the packaged app (or `npm run start:ow-electron`)
    and read `[Main] Overwolf app uid: <uid>` from the console or
-   `%APPDATA%/Pavlov/logs/main.log`. The uid is derived from
+   `%APPDATA%/MapSense/logs/main.log`. The uid is derived from
    package.json `productName` + `author.name`, so those fields must not
    change afterwards.
 2. **Ask Overwolf to enable the uid** via their

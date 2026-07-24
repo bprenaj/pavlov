@@ -24,7 +24,7 @@ SRC = ROOT / "src"
 INSTALLER = ROOT / "installer"
 DIST = ROOT / "dist"
 BUILD = ROOT / "build"
-SVG_PATH = ROOT / "images" / "Mapavlov Favicon.svg"
+SVG_PATH = ROOT / "images" / "Mamapsense Favicon.svg"
 ICO_PATH = INSTALLER / "mapsense.ico"
 
 

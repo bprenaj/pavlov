@@ -1,0 +1,97 @@
+{
+  "name": "mapsense",
+  "productName": "MapSense",
+  "version": "1.1.0",
+  "description": "Map awareness coach for competitive gamers",
+  "author": "SwissTropic (swisstropicventures.com)",
+  "license": "MIT",
+  "main": "dist/main/index.js",
+  "scripts": {
+    "build": "npm run clean && tsc -p tsconfig.json && node scripts/copy-static.mjs",
+    "clean": "rimraf dist",
+    "dev": "npm run build && electron .",
+    "start": "npm run build && electron .",
+    "start:ow-electron": "npm run build && ow-electron .",
+    "build:ow-electron": "npm run build && ow-electron-builder",
+    "package": "npm run build && ow-electron-builder --win",
+    "release": "npm run build && ow-electron-builder --win --publish always",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src/ tests/",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:ui": "vitest run tests/ui",
+    "test:e2e": "vitest run tests/e2e",
+    "test:watch": "vitest watch",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "electron-store": "^8.2.0",
+    "electron-updater": "^6.8.9",
+    "koffi": "^2.9.0",
+    "posthog-node": "^5.39.4",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@overwolf/ow-electron": "39.6.1",
+    "@overwolf/ow-electron-builder": "26.0.12",
+    "@testing-library/dom": "^10.0.0",
+    "@types/node": "^22.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "@vitest/coverage-v8": "^3.0.0",
+    "chart.js": "^4.4.0",
+    "electron": "^34.5.8",
+    "eslint": "^9.0.0",
+    "jsdom": "^25.0.0",
+    "prettier": "^3.4.0",
+    "rimraf": "^6.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "build": {
+    "appId": "com.swisstropic.mapsense",
+    "productName": "MapSense",
+    "icon": "build/icon.ico",
+    "directories": {
+      "output": "release"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "bprenaj",
+      "repo": "mapsense",
+      "releaseType": "release"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "MapSense",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "include": "build/installer.nsh"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "extraFiles": [
+      {
+        "from": "../../beam_eye_tracker_client.dll",
+        "to": "beam_eye_tracker_client.dll"
+      }
+    ]
+  }
+}

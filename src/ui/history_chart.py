@@ -65,7 +65,7 @@ def _try_import_matplotlib():
 def _favicon_pixmap(size: int = 36) -> QPixmap:
     svg_path = os.path.join(
         os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-        "images", "Mapavlov Favicon.svg",
+        "images", "Mamapsense Favicon.svg",
     )
     if os.path.isfile(svg_path):
         from PySide6.QtGui import QPainter

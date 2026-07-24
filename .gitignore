@@ -49,6 +49,6 @@ src/assets/alert.wav
 *.mp3
 
 # ow-electron app: keep the packaged icon despite the Python-era build/ rule
-!apps/pavlov-ow-electron-opus/build/
+!apps/mapsense/build/
 # electron-builder output
-apps/pavlov-ow-electron-opus/release/
+apps/mapsense/release/

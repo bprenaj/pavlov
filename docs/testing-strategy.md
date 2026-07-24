@@ -1,8 +1,8 @@
-# Pavlov Testing Strategy
+# MapSense Testing Strategy
 
 ## Quality Gates
 
-From `apps/pavlov-ow-electron-opus`:
+From `apps/mapsense`:
 
 - `npm run typecheck`
 - `npm run lint`
@@ -17,7 +17,7 @@ From `apps/pavlov-ow-electron-opus`:
 | `mas.test.ts` | 11 | MAS scoring: perfect, worst, mid-range, extreme, edge cases, std dev |
 | `region.test.ts` | 11 | Tolerance expansion, point containment, gaze-in-region, ratio conversion, round-trip |
 | `gamePresets.test.ts` | 10 | Preset values in range, names non-empty, getPreset, presetKeys, presetToRect, cornerLabel |
-| `schemas.test.ts` | 11 | Zod validation: MinimapRect, PavlovSettings defaults/full/reject, safe parse, session records |
+| `schemas.test.ts` | 11 | Zod validation: MinimapRect, MapSenseSettings defaults/full/reject, safe parse, session records |
 | `entitlement.test.ts` | 10 | Default free, set tier, isPaid, invalid tier rejection, persistence via storage adapter |
 | `alertManager.test.ts` | 6 | Audio/visual/IRL trigger, no double-trigger, dismiss all channels, isSilent |
 | `ipc.test.ts` | 5 | Unique channel values, prefix check, required handlers/push/overlay channels |
@@ -46,7 +46,7 @@ From `apps/pavlov-ow-electron-opus`:
 ## Packaged Smoke Test (before any release)
 
 1. `npm run package` (NSIS installer + `release/win-unpacked/`)
-2. Launch `release/win-unpacked/Pavlov.exe`
+2. Launch `release/win-unpacked/MapSense.exe`
 3. Confirm: window opens, tray icon appears, Beam status resolves, quit from tray exits cleanly (no zombie processes)
 
 ## Manual Validation Checklist

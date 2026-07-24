@@ -1,21 +1,21 @@
-# Pavlov / MapSense - Project Instructions
+# MapSense - Project Instructions
 
 > **ABSOLUTE RULE (all SwissTropic projects): NO EM DASHES. EVER.** Not in UI copy, docs, comments, commit messages, release notes, or anywhere else. Use a comma, period, parentheses, or plain hyphen instead. CI enforces this (`tests/e2e/smoke.test.ts`); never weaken that test.
 
-> **Migration status (March 2026):** The active implementation target is the ow-electron app in [`apps/pavlov-ow-electron-opus`](apps/pavlov-ow-electron-opus). The earlier incomplete attempt is in [`apps/pavlov-ow-electron`](apps/pavlov-ow-electron). The Python/PySide app in [`src`](src) remains a legacy reference during cutover.
+> **Migration status (updated 2026-07-24):** The active implementation is the ow-electron app in [`apps/mapsense`](apps/mapsense). The earlier incomplete Electron attempt was deleted (recoverable from git history). The Python/PySide app in [`src`](src) remains a legacy reference during cutover.
 
 ## Current Project State (Read First)
 
 - **Active stack:** Electron + ow-electron + TypeScript
 - **Legacy stack:** Python + PySide6
-- **Primary product name:** Pavlov
+- **Primary product name:** MapSense
 - **Free mode requirement:** timer-based cues must stay fully functional without Beam
 - **Paid mode requirement:** Beam gaze-driven coaching is gated by subscription entitlement
 - **Monetization direction:** Overwolf-first (`owadview`, CMP flow, Overwolf distribution path)
 
 ### UX and Terminology Guardrails
 
-- App name in user-facing UI is **Pavlov** (not "Pavlov's Bell").
+- App name in user-facing UI is **MapSense**, everywhere. The former name (the scientist's) was retired 2026-07-24 and must not reappear in any surface, code identifier, or doc.
 - Say **Beam Eye Tracker** in UI text for clarity.
 - Keep wording close to legacy intent; avoid novelty renaming of familiar controls.
 - Keep first-run onboarding and region-first guidance flow.
@@ -32,7 +32,7 @@
 
 ## What Is MapSense
 
-MapSense is a free Steam app by **Eyeware Tech SA** that uses eye tracking to train gamers' minimap awareness. It monitors whether the player is checking the minimap frequently enough during gameplay and triggers audio/visual/physical alerts when they aren't. Think of it as Pavlovian conditioning for map awareness.
+MapSense is a free Steam app by **Eyeware Tech SA** that uses eye tracking to train gamers' minimap awareness. It monitors whether the player is checking the minimap frequently enough during gameplay and triggers audio/visual/physical alerts when they aren't. Think of it as classical conditioning for map awareness.
 
 **Based on:** [MOBA-Minimap-Awareness-Trainer](https://github.com/kenneth-ew/MOBA-Minimap-Awareness-Trainer) (MIT-licensed prototype by Kenneth/Eyeware). Credit this in the About screen and README.
 
@@ -136,7 +136,7 @@ Stick with Python/PySide6 (same as the prototype). Rationale:
 
 The active implementation has moved to Electron/ow-electron to align with Overwolf distribution and freemium strategy.
 
-- Main app code now lives in `apps/pavlov-ow-electron`
+- Main app code now lives in `apps/mapsense`
 - Beam integration uses a native `koffi` bridge to `beam_eye_tracker_client.dll`
 - Renderer uses secure preload IPC (`contextIsolation: true`, no renderer Node globals)
 - Packaging target is `ow-electron-builder`
@@ -193,7 +193,7 @@ if confidence >= 2:  # MEDIUM or HIGH
 ```
 mapsense/
 ├── images/
-│   └── Mapavlov Favicon.svg       # App favicon (Pavlov ringing bell)
+│   └── Mamapsense Favicon.svg       # App favicon (MapSense ringing bell)
 ├── src/
 │   ├── main.py                    # Entry point
 │   ├── app.py                     # Application class, lifecycle
@@ -319,15 +319,15 @@ When simulating first-time UX in debug mode, set a `_force_first_time` flag BEFO
 
 Metrics use muted colors (not harsh traffic lights) to indicate ranges: soft green for good, soft yellow for needs-improvement, soft coral for bad. Define ranges per metric with a `higher_is_better` flag. Band metrics like "map attention" need both a too-low and too-high threshold. Apply colors in the stats refresh loop by updating `setStyleSheet` on value labels.
 
-### 12. Pavlov Metaphor (Get It Right)
+### 12. Conditioning Metaphor (Get It Right)
 
-The app icon is Pavlov ringing a bell. The metaphor:
-- **Pavlov** (scientist) = **MapSense** (the app doing the conditioning)
+The app icon is a scientist ringing a bell (classical conditioning). The metaphor:
+- **The scientist** = **MapSense** (the app doing the conditioning)
 - **The dog** = **the gamer** (being trained)
 - **The bell** = **the alert** (audio ding, visual flash)
 - **The food** = **the minimap** (what the dog learns to check)
 
-Never call Pavlov a dog. MapSense doesn't bark (dogs bark). MapSense rings bells.
+Never call MapSense a dog. MapSense doesn't bark (dogs bark). MapSense rings bells.
 
 ## IRL Webhook API
 
@@ -387,7 +387,7 @@ python -m pytest tests/ -v
 
 Electron app (active - opus):
 ```bash
-cd apps/pavlov-ow-electron-opus
+cd apps/mapsense
 npm run typecheck
 npm run lint
 npm test
@@ -407,7 +407,7 @@ Lint runs clean with zero warnings; keep it that way.
 
 ### Field diagnostics
 
-Packaged runs mirror all console output to `%APPDATA%/Pavlov/logs/main.log`
+Packaged runs mirror all console output to `%APPDATA%/MapSense/logs/main.log`
 (512KB rotation, one `.1` generation kept; `src/main/services/logger.ts`).
 When a user reports a bug, ask for that file first. Uncaught exceptions,
 unhandled rejections, and renderer crashes are logged there too.
@@ -415,16 +415,16 @@ unhandled rejections, and renderer crashes are logged there too.
 ### Packaged smoke test (before any release)
 
 ```bash
-cd apps/pavlov-ow-electron-opus
+cd apps/mapsense
 npm run package                      # NSIS installer + win-unpacked into release/
-./release/win-unpacked/Pavlov.exe    # must open the window, tray, and quit cleanly
+./release/win-unpacked/MapSense.exe    # must open the window, tray, and quit cleanly
 ```
 
 ## Releases & Auto-Update
 
 The installed app self-updates via `electron-updater` against GitHub Releases
 (`src/main/services/updater.ts`; owner/repo in package.json `build.publish` --
-`bprenaj/pavlov`, public, so updates work anonymously). Checks 30s after launch
+`bprenaj/mapsense`, public, so updates work anonymously). Checks 30s after launch
 and every 4h; downloads in the background; the renderer shows a
 "Restart to Update" banner (Cursor-style) plus a tray menu item when the update
 is staged. Installing restarts the app immediately; ignoring it installs on quit.
@@ -441,12 +441,15 @@ straight to the tray. The uninstaller (`build/installer.nsh`, locked by
 and the autostart Run value; verify real uninstalls with
 `scripts/verify-uninstall.ps1`.
 
-**Cutting a release:**
+**Cutting a release** (monorepo: `npm version` silently skips the git tag
+when package.json is not at the repo root, so tag by hand):
 
 ```bash
-cd apps/pavlov-ow-electron-opus
-npm version patch        # bumps package.json + creates the v* tag
-git push --follow-tags   # .github/workflows/release.yml builds + publishes
+cd apps/mapsense
+npm version patch --no-git-tag-version   # bumps package.json only
+git add -A && git commit -m "Release vX.Y.Z"
+git tag -a vX.Y.Z -m "vX.Y.Z"
+git push --follow-tags                   # .github/workflows/release.yml builds + publishes
 ```
 
 Publishing uploads the installer, the `.blockmap` (differential updates), and

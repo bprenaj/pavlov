@@ -31,7 +31,7 @@ a = Analysis(
         (str(ASSETS / "alert.wav"), "assets"),
         (str(ASSETS / "Lato-Regular.ttf"), "assets"),
         (str(ASSETS / "Lato-Bold.ttf"), "assets"),
-        (str(IMAGES / "Mapavlov Favicon.svg"), "images"),
+        (str(IMAGES / "Mamapsense Favicon.svg"), "images"),
     ] + mpl_datas,
     hiddenimports=[
         "app",

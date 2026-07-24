@@ -1,13 +1,13 @@
-# Pavlov Electron Migration
+# MapSense Electron Migration
 
 ## Goal
 
-Refactor Pavlov from the legacy Python/PySide stack to a parallel ow-electron app while preserving behavior parity for coaching loops, session stats, and user settings.
+Refactor MapSense from the legacy Python/PySide stack to a parallel ow-electron app while preserving behavior parity for coaching loops, session stats, and user settings.
 
 ## Current Target
 
-- **Active implementation:** [`apps/pavlov-ow-electron-opus`](../apps/pavlov-ow-electron-opus)
-- **Prior incomplete attempt:** [`apps/pavlov-ow-electron`](../apps/pavlov-ow-electron)
+- **Active implementation:** [`apps/mapsense`](../apps/mapsense)
+- **Prior incomplete attempt:** [`apps/mapsense`](../apps/mapsense)
 - **Legacy reference:** [`src`](../src)
 
 ## Module Mapping
@@ -28,7 +28,7 @@ Refactor Pavlov from the legacy Python/PySide stack to a parallel ow-electron ap
 ## Architecture
 
 - **Main process**: app lifecycle, window management, IPC handlers, Beam bridge, session engine, alert manager, IRL webhook, tray
-- **Preload**: typed `pavlovApi` bridge via `contextBridge` (contextIsolation: true)
+- **Preload**: typed `mapsenseApi` bridge via `contextBridge` (contextIsolation: true)
 - **Renderer**: single `index.html` shell with Coach/History/Settings pages, no Node access
 - **Shared**: pure TypeScript modules (types, schemas, MAS calc, region math, game presets)
 - **Overlays**: separate transparent windows for region selection and alert flash
@@ -44,7 +44,7 @@ Migration service:
 
 - `src/main/services/migration.ts`
 
-Maps snake_case Python keys to camelCase TypeScript, validates through Zod schemas, writes to `%APPDATA%/Pavlov/` and marks completion with `.migrated` marker file.
+Maps snake_case Python keys to camelCase TypeScript, validates through Zod schemas, writes to `%APPDATA%/MapSense/` and marks completion with `.migrated` marker file.
 
 ## Runtime Flow
 

@@ -1,23 +1,23 @@
-# Pavlov - Agent Operating Guide
+# MapSense - Agent Operating Guide
 
 > **ABSOLUTE RULE: NO EM DASHES. EVER.** Anywhere: copy, docs, comments, commits, notes. Use comma, period, parentheses, or plain hyphen. Enforced by the e2e smoke test.
 
 ## Primary Source of Truth
 
-- **Active app stack:** [`apps/pavlov-ow-electron-opus`](apps/pavlov-ow-electron-opus)
-- **Prior incomplete attempt:** [`apps/pavlov-ow-electron`](apps/pavlov-ow-electron)
+- **Active app stack:** [`apps/mapsense`](apps/mapsense)
+- **Prior incomplete attempt:** [`apps/mapsense`](apps/mapsense)
 - **Legacy reference app:** Python/PySide implementation in [`src`](src)
 - **Do not delete legacy code** until feature parity and release cutover are complete.
 
 ## Product Direction
 
-- Product name is **Pavlov**.
+- Product name is **MapSense**.
 - Audience is competitive gamers (roughly 12-25), especially LoL and similar titles.
 - Voice is confident and slightly arrogant, but playful and not cringe.
 - Use **Beam Eye Tracker** wording in UI copy (avoid shortening to just "Beam" in user-facing text).
 - Keep labels close to legacy meaning; avoid random fluff renaming that harms clarity.
-- Pavlov metaphor:
-  - Pavlov = the coach
+- MapSense metaphor:
+  - MapSense = the coach
   - Bell = cue
   - Player = trainee
   - Minimap checks = rewarded habit loop
@@ -50,7 +50,7 @@
 
 ## Testing Rules
 
-- Run before handoff from `apps/pavlov-ow-electron-opus`:
+- Run before handoff from `apps/mapsense`:
   - `npm run typecheck`
   - `npm run lint`
   - `npm test`
@@ -60,14 +60,14 @@
   - `tests/integration` for session engine (free mode and paid mode)
   - `tests/ui` for renderer DOM structure (all elements, metrics, onboarding, update banner, pro modal)
   - `tests/e2e` for smoke (file existence, script validity, HTML references, update wiring, no debug cruft)
-- Before cutting a release, run the packaged smoke test: `npm run package`, launch `release/win-unpacked/Pavlov.exe`, confirm the window opens and quits cleanly
+- Before cutting a release, run the packaged smoke test: `npm run package`, launch `release/win-unpacked/MapSense.exe`, confirm the window opens and quits cleanly
 
 ## Auto-Update
 
 - `src/main/services/updater.ts` wraps electron-updater (GitHub Releases feed, `build.publish` in package.json = single source of truth).
 - Updates download in the background; the renderer shows a "Restart to Update" banner when staged; tray gets a matching menu item; ignoring it installs on next quit.
 - Disabled automatically in dev (unpackaged) runs. The service is DI-based -- test against `tests/unit/updater.test.ts` patterns, never require electron-updater at module top level.
-- Release: bump version in `apps/pavlov-ow-electron-opus`, push the `v*` tag, and `.github/workflows/release.yml` builds + publishes the installer and `latest.yml`. Never hand-edit `latest.yml`.
+- Release: bump version in `apps/mapsense`, push the `v*` tag, and `.github/workflows/release.yml` builds + publishes the installer and `latest.yml`. Never hand-edit `latest.yml`.
 
 ## Docs Index
 

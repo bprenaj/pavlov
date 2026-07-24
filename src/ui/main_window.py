@@ -403,7 +403,7 @@ class MainWindow(QMainWindow):
             base = sys._MEIPASS
         else:
             base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        return os.path.join(base, "images", "Mapavlov Favicon.svg")
+        return os.path.join(base, "images", "Mamapsense Favicon.svg")
 
     @classmethod
     def _app_icon(cls) -> QIcon:
@@ -674,7 +674,7 @@ class MainWindow(QMainWindow):
 
         mode_lbl = QLabel("Alert type")
         mode_lbl.setToolTip(
-            "Pick your conditioning method. Pavlov approves all of them.\n"
+            "Pick your conditioning method. MapSense approves all of them.\n"
             "Combine Audio, Visual, and IRL for maximum stimulus.\n"
             "Or pick Silent if you just want to observe your bad habits."
         )
@@ -693,7 +693,7 @@ class MainWindow(QMainWindow):
             ),
             "Visual": (
                 "Flashes your minimap purple when you tunnel vision.\n"
-                "Consider it a gentle nudge from Pavlov himself.\n"
+                "Consider it a gentle nudge from MapSense.\n"
                 "Look at the map and it stops judging you."
             ),
             "Audio": (
@@ -704,7 +704,7 @@ class MainWindow(QMainWindow):
             "IRL": (
                 "Wire up a real buzzer, LED strip, or whatever cursed\n"
                 "contraption you can dream up. MapSense sends webhooks,\n"
-                "your hardware does the rest. Pavlov would be proud."
+                "your hardware does the rest. MapSense would be proud."
             ),
         }
 

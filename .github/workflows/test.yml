@@ -10,14 +10,14 @@ jobs:
     runs-on: windows-latest
     defaults:
       run:
-        working-directory: apps/pavlov-ow-electron-opus
+        working-directory: apps/mapsense
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: apps/pavlov-ow-electron-opus/package-lock.json
+          cache-dependency-path: apps/mapsense/package-lock.json
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint

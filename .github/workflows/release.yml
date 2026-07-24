@@ -4,7 +4,7 @@ name: Release
 # auto-update feed) to this repo's GitHub Releases whenever a version tag
 # is pushed:
 #
-#   cd apps/pavlov-ow-electron-opus
+#   cd apps/mapsense
 #   npm version patch           # bumps package.json + creates the tag
 #   git push --follow-tags      # triggers this workflow
 #
@@ -23,14 +23,14 @@ jobs:
     runs-on: windows-latest
     defaults:
       run:
-        working-directory: apps/pavlov-ow-electron-opus
+        working-directory: apps/mapsense
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: apps/pavlov-ow-electron-opus/package-lock.json
+          cache-dependency-path: apps/mapsense/package-lock.json
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
