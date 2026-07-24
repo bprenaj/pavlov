@@ -125,7 +125,7 @@ describe('Renderer Layout', () => {
 
   it('settings page has card-based layout', () => {
     const cards = document.querySelectorAll('#pageSettings .s-card');
-    expect(cards.length).toBe(8);
+    expect(cards.length).toBe(9);
   });
 
   it('settings page has all controls', () => {
@@ -212,6 +212,13 @@ describe('Renderer Layout', () => {
     expect(document.getElementById('planLabel')).not.toBeNull();
   });
 
+  it('has a Start with Windows toggle, on by default (tray-resident app)', () => {
+    const toggle = document.getElementById('settingLaunchAtStartup') as HTMLInputElement;
+    expect(toggle).not.toBeNull();
+    expect(toggle.type).toBe('checkbox');
+    expect(toggle.checked).toBe(true);
+  });
+
   it('has an anonymous-usage-data opt-out toggle', () => {
     const toggle = document.getElementById('settingAnalytics') as HTMLInputElement;
     expect(toggle).not.toBeNull();
@@ -220,8 +227,11 @@ describe('Renderer Layout', () => {
     expect(toggle.checked).toBe(true);
   });
 
-  it('ad banner contains the Overwolf owadview element', () => {
-    expect(document.querySelector('#adBanner owadview')).not.toBeNull();
+  it('ad banner contains the Overwolf owadview element in an IAB-sized slot', () => {
+    // Overwolf only serves ads into standard IAB-sized containers; owadview
+    // must sit inside the fixed-size .ad-slot wrapper.
+    const owadview = document.querySelector('#adBanner .ad-slot owadview');
+    expect(owadview).not.toBeNull();
   });
 
   it('loads no remote scripts, styles, or fonts (offline-safe)', () => {

@@ -393,14 +393,14 @@ npm run lint
 npm test
 ```
 
-### Test structure (174 tests, 15 files)
+### Test structure (192 tests, 16 files)
 
 | Suite | Files | Tests | Coverage |
 |-------|-------|-------|----------|
-| `tests/unit/` | 11 | 101 | MAS, region, presets, schemas, entitlement (+persistence), alertManager, analytics guards, IPC, updater state machine (+cancel/error recovery), IRL webhook server (+bind retry), file logger (+rotation) |
+| `tests/unit/` | 12 | 116 | MAS, region, presets, schemas, entitlement (+persistence), alertManager, analytics guards, IPC, updater state machine (+cancel/error recovery, ready-state recheck, cache hygiene), IRL webhook server (+bind retry), file logger (+rotation), uninstall cleanup cross-check |
 | `tests/integration/` | 2 | 20 | Session engine free + paid modes |
-| `tests/ui/` | 1 | 37 | Renderer DOM structure (all elements, metrics, onboarding, update banner, pro modal, offline-safety/CSP) |
-| `tests/e2e/` | 1 | 16 | Smoke checks (files, scripts, HTML references, auto-update wiring, main-process hardening, release-gate parity, no debug cruft) |
+| `tests/ui/` | 1 | 38 | Renderer DOM structure (all elements, metrics, onboarding, update banner, pro modal, autostart toggle, ad slot, offline-safety/CSP) |
+| `tests/e2e/` | 1 | 18 | Smoke checks (files, scripts, HTML references, auto-update wiring, main-process hardening, release-gate parity, no debug cruft) |
 
 When adding new UI elements, add corresponding tests to `tests/ui/rendererLayout.test.ts`.
 Lint runs clean with zero warnings; keep it that way.
@@ -428,7 +428,18 @@ The installed app self-updates via `electron-updater` against GitHub Releases
 and every 4h; downloads in the background; the renderer shows a
 "Restart to Update" banner (Cursor-style) plus a tray menu item when the update
 is staged. Installing restarts the app immediately; ignoring it installs on quit.
-Dev (unpackaged) runs disable the updater.
+Dev (unpackaged) runs disable the updater. The updater implements the
+Auto-Update Standard cache-hygiene rules: it re-checks while an update is
+staged (so restarts always land on the latest release) and drops the cached
+`current.blockmap` before each check (so differential downloads keep working
+under a fast cadence).
+
+**Tray residency:** close hides to the tray; "Start with Windows" (on by
+default, Settings toggle) registers a `--hidden` login item so boots go
+straight to the tray. The uninstaller (`build/installer.nsh`, locked by
+`tests/unit/uninstallCleanup.test.ts`) removes userData, the updater cache,
+and the autostart Run value; verify real uninstalls with
+`scripts/verify-uninstall.ps1`.
 
 **Cutting a release:**
 

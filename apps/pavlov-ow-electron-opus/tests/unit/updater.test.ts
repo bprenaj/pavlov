@@ -1,5 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
-import { UpdaterService } from '../../src/main/services/updater';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import {
+  UpdaterService,
+  updaterCacheDir,
+  dropStaleBlockmap,
+  pruneStrandedPartials,
+} from '../../src/main/services/updater';
 import type { AutoUpdaterLike } from '../../src/main/services/updater';
 import type { UpdaterState } from '../../src/shared/types';
 
@@ -26,7 +34,7 @@ class FakeAutoUpdater implements AutoUpdaterLike {
   }
 }
 
-function makeUpdater(opts: { isPackaged?: boolean } = {}) {
+function makeUpdater(opts: { isPackaged?: boolean; cacheDir?: string | null } = {}) {
   const fake = new FakeAutoUpdater();
   const states: UpdaterState[] = [];
   const service = new UpdaterService();
@@ -34,6 +42,7 @@ function makeUpdater(opts: { isPackaged?: boolean } = {}) {
   const intervals: (() => void)[] = [];
   service.init({
     isPackaged: opts.isPackaged ?? true,
+    cacheDir: opts.cacheDir ?? null,
     getAutoUpdater: () => fake,
     onStateChange: (s) => states.push(s),
     setTimeoutFn: ((fn: () => void) => {
@@ -104,15 +113,27 @@ describe('UpdaterService', () => {
     expect(service.getState()).toMatchObject({ status: 'error', error: 'offline' });
   });
 
-  it('does not re-check while downloading or ready', () => {
+  it('does not re-check while downloading', () => {
     const { fake, service } = makeUpdater();
     fake.emit('update-available', { version: '2.0.0' });
     service.check();
     expect(fake.checkForUpdates).not.toHaveBeenCalled();
+  });
 
+  it('DOES re-check while an update is staged, so it never goes stale (rule 8)', () => {
+    const { fake, service } = makeUpdater();
+    fake.emit('update-available', { version: '2.0.0' });
     fake.emit('update-downloaded', { version: '2.0.0' });
+    expect(service.getState().status).toBe('ready');
+
     service.check();
-    expect(fake.checkForUpdates).not.toHaveBeenCalled();
+    expect(fake.checkForUpdates).toHaveBeenCalledTimes(1);
+
+    // A newer release supersedes the staged one; a single restart must land
+    // on the latest.
+    fake.emit('update-available', { version: '3.0.0' });
+    fake.emit('update-downloaded', { version: '3.0.0' });
+    expect(service.getState()).toMatchObject({ status: 'ready', availableVersion: '3.0.0' });
   });
 
   it('recovers to idle when a download is cancelled, so checks resume', () => {
@@ -151,5 +172,75 @@ describe('UpdaterService', () => {
     fake.emit('update-available', { version: '2.0.0' });
     fake.emit('update-downloaded', { version: '2.0.0' });
     expect(states.map((s) => s.status)).toEqual(['checking', 'downloading', 'ready']);
+  });
+});
+
+describe('updater cache hygiene (rule 9)', () => {
+  function makeCacheDir(): string {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pavlov-updater-cache-'));
+    return dir;
+  }
+
+  it('resolves the cache dir from app-update.yml', () => {
+    const resources = fs.mkdtempSync(path.join(os.tmpdir(), 'pavlov-resources-'));
+    fs.writeFileSync(
+      path.join(resources, 'app-update.yml'),
+      'provider: github\nupdaterCacheDirName: pavlov-updater\n',
+    );
+    const dir = updaterCacheDir(resources, 'win32', { LOCALAPPDATA: 'C:\\LA' }, 'C:\\Home');
+    expect(dir).toBe(path.join('C:\\LA', 'pavlov-updater'));
+    fs.rmSync(resources, { recursive: true, force: true });
+  });
+
+  it('returns null when app-update.yml is missing (dev, tests)', () => {
+    expect(updaterCacheDir(path.join(os.tmpdir(), 'does-not-exist'))).toBeNull();
+  });
+
+  it('deletes the cached blockmap but never installer.exe', () => {
+    const dir = makeCacheDir();
+    fs.writeFileSync(path.join(dir, 'current.blockmap'), 'stale');
+    fs.writeFileSync(path.join(dir, 'installer.exe'), 'differential base');
+    dropStaleBlockmap(dir);
+    expect(fs.existsSync(path.join(dir, 'current.blockmap'))).toBe(false);
+    expect(fs.existsSync(path.join(dir, 'installer.exe'))).toBe(true);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('tolerates a missing cache dir and null input', () => {
+    expect(() => dropStaleBlockmap(null)).not.toThrow();
+    expect(() => dropStaleBlockmap(path.join(os.tmpdir(), 'nope'))).not.toThrow();
+    expect(pruneStrandedPartials(null)).toEqual([]);
+  });
+
+  it('prunes only temp-* partials from pending/', () => {
+    const dir = makeCacheDir();
+    const pending = path.join(dir, 'pending');
+    fs.mkdirSync(pending);
+    fs.writeFileSync(path.join(pending, 'temp-Pavlov-Setup-1.0.4.exe'), 'partial');
+    fs.writeFileSync(path.join(pending, 'Pavlov-Setup-1.0.4.exe'), 'staged installer');
+    const removed = pruneStrandedPartials(dir);
+    expect(removed).toEqual(['temp-Pavlov-Setup-1.0.4.exe']);
+    expect(fs.existsSync(path.join(pending, 'Pavlov-Setup-1.0.4.exe'))).toBe(true);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('check() drops the stale blockmap before asking the feed', () => {
+    const dir = makeCacheDir();
+    fs.writeFileSync(path.join(dir, 'current.blockmap'), 'stale');
+    const { fake, service } = makeUpdater({ cacheDir: dir });
+    service.check();
+    expect(fs.existsSync(path.join(dir, 'current.blockmap'))).toBe(false);
+    expect(fake.checkForUpdates).toHaveBeenCalledTimes(1);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('init prunes stranded partials once, at startup', () => {
+    const dir = makeCacheDir();
+    const pending = path.join(dir, 'pending');
+    fs.mkdirSync(pending);
+    fs.writeFileSync(path.join(pending, 'temp-x.exe'), 'partial');
+    makeUpdater({ cacheDir: dir });
+    expect(fs.existsSync(path.join(pending, 'temp-x.exe'))).toBe(false);
+    fs.rmSync(dir, { recursive: true, force: true });
   });
 });

@@ -23,6 +23,7 @@ interface PavlovSettings {
   regionName: string; savedRegions: SavedRegion[]; hotkey: string;
   irlEnabled: boolean; irlPort: number; irlWebhookUrl: string;
   firstRun: boolean; trainingMode: string; analyticsOptOut: boolean;
+  launchAtStartup: boolean;
 }
 interface UpdaterState {
   status: string; availableVersion: string | null; error: string | null;
@@ -156,6 +157,7 @@ function syncSettingsToUI(s: PavlovSettings): void {
   ($('settingHotkey') as HTMLInputElement).value = s.hotkey;
   // Checkbox is "send data" = the inverse of the stored opt-out flag.
   ($('settingAnalytics') as HTMLInputElement).checked = !s.analyticsOptOut;
+  ($('settingLaunchAtStartup') as HTMLInputElement).checked = s.launchAtStartup;
   updateRegionUI(s);
   $('modeLabel').textContent = s.trainingMode === 'paid' ? 'Pro Mode' : 'Free Mode';
   $('trackingHint').textContent = s.trainingMode === 'free' ? 'Timer mode (Beam not used)' : '';
@@ -551,6 +553,9 @@ function bindEvents(): void {
     const optOut = !(e.target as HTMLInputElement).checked;
     api.setAnalyticsOptOut(optOut);
     patchSetting({ analyticsOptOut: optOut });
+  });
+  $('settingLaunchAtStartup').addEventListener('change', (e) => {
+    patchSetting({ launchAtStartup: (e.target as HTMLInputElement).checked });
   });
   $('btnStartTrial').addEventListener('click', startProTrial);
   $('btnCloseProModal').addEventListener('click', hideProModal);

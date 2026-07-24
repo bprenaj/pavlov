@@ -217,7 +217,15 @@ html, body {
   font-size: 9px; font-weight: 700; text-transform: uppercase; color: var(--text-2);
   border: 1px solid var(--line); border-radius: 3px; padding: 1px 5px;
 }
-.ad-placeholder-text { font-size: 12px; color: var(--text-2); }
+/* Exact IAB unit size: Overwolf serves ads only into standard-sized
+   containers, and the slot must keep a transparent background so the
+   placeholder acts as the no-fill fallback. */
+.ad-slot { position: relative; width: 400px; height: 60px; background: transparent; }
+.ad-slot owadview { position: absolute; inset: 0; width: 400px; height: 60px; }
+.ad-placeholder-text {
+  font-size: 12px; color: var(--text-2);
+  position: absolute; inset: 0; display: flex; align-items: center;
+}
 .ad-cta { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
 .ad-cta-text { font-size: 12px; color: var(--text-1); max-width: 160px; }
 

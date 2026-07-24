@@ -1,3 +1,6 @@
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import {
   UPDATE_FIRST_CHECK_DELAY_MS,
   UPDATE_CHECK_INTERVAL_MS,
@@ -17,6 +20,74 @@ import type { UpdaterState } from '../../shared/types';
  * without Electron.
  */
 
+/**
+ * Updater cache hygiene (Auto-Update Standard rule 9).
+ *
+ * electron-updater pairs <cache>/installer.exe (a byte-copy of the last
+ * INSTALLED installer, parked by the NSIS installer as the differential
+ * base; one full installer big, by design, never delete it) with a cached
+ * <cache>/current.blockmap that tracks the last DOWNLOADED build. Re-checks
+ * while an update is staged (rule 8) make the pair desync whenever a staged
+ * update is superseded before a restart; every differential download then
+ * fails its sha512 check and silently falls back to a full download.
+ * Deleting the cached blockmap before each check forces electron-updater to
+ * re-fetch the blockmap of the RUNNING version by URL, which matches
+ * installer.exe after any normal install.
+ *
+ * Separately, quitting mid-download strands pending/temp-* partials forever;
+ * they are pruned at startup, when no download can be in flight yet.
+ */
+export function updaterCacheDir(
+  resourcesPath: string,
+  platform: NodeJS.Platform = process.platform,
+  env: NodeJS.ProcessEnv = process.env,
+  home: string = os.homedir(),
+): string | null {
+  try {
+    const yml = fs.readFileSync(path.join(resourcesPath, 'app-update.yml'), 'utf8');
+    const m = /^updaterCacheDirName:\s*(\S+)\s*$/m.exec(yml);
+    if (!m) return null;
+    const base =
+      platform === 'win32'
+        ? (env.LOCALAPPDATA ?? path.join(home, 'AppData', 'Local'))
+        : platform === 'darwin'
+          ? path.join(home, 'Library', 'Caches')
+          : (env.XDG_CACHE_HOME ?? path.join(home, '.cache'));
+    return path.join(base, m[1]);
+  } catch {
+    return null;
+  }
+}
+
+export function dropStaleBlockmap(cacheDir: string | null): void {
+  if (!cacheDir) return;
+  try {
+    fs.rmSync(path.join(cacheDir, 'current.blockmap'), { force: true });
+  } catch {
+    /* never let cache hygiene break the updater */
+  }
+}
+
+export function pruneStrandedPartials(cacheDir: string | null): string[] {
+  if (!cacheDir) return [];
+  const removed: string[] = [];
+  try {
+    const pending = path.join(cacheDir, 'pending');
+    for (const name of fs.readdirSync(pending)) {
+      if (!name.startsWith('temp-')) continue;
+      try {
+        fs.rmSync(path.join(pending, name), { force: true });
+        removed.push(name);
+      } catch {
+        /* locked or gone, either is fine */
+      }
+    }
+  } catch {
+    /* no pending dir yet */
+  }
+  return removed;
+}
+
 export interface AutoUpdaterLike {
   autoDownload: boolean;
   autoInstallOnAppQuit: boolean;
@@ -33,6 +104,11 @@ export interface UpdaterOptions {
   getAutoUpdater: () => AutoUpdaterLike;
   /** called whenever state changes, e.g. push to renderer + tray */
   onStateChange: (state: UpdaterState) => void;
+  /**
+   * electron-updater's download cache dir (updaterCacheDir()); null/omitted
+   * skips cache hygiene (dev, tests without a cache).
+   */
+  cacheDir?: string | null;
   /** scheduling seams, default to real timers */
   setTimeoutFn?: typeof setTimeout;
   setIntervalFn?: typeof setInterval;
@@ -42,6 +118,8 @@ export class UpdaterService {
   private state: UpdaterState = { status: 'idle', availableVersion: null, error: null };
   private autoUpdater: AutoUpdaterLike | null = null;
   private onStateChange: (state: UpdaterState) => void = () => {};
+  private cacheDir: string | null = null;
+  private lastReadyVersion: string | null = null;
 
   getState(): UpdaterState {
     return { ...this.state };
@@ -66,6 +144,11 @@ export class UpdaterService {
     }
 
     this.autoUpdater = updater;
+    this.cacheDir = opts.cacheDir ?? null;
+    const pruned = pruneStrandedPartials(this.cacheDir);
+    if (pruned.length) {
+      console.log(`[Updater] Removed stranded partial download(s): ${pruned.join(', ')}`);
+    }
     updater.autoDownload = true;
     updater.autoInstallOnAppQuit = true;
     updater.logger = {
@@ -91,7 +174,15 @@ export class UpdaterService {
     });
     updater.on('update-downloaded', (...args: unknown[]) => {
       const info = args[0] as { version?: string } | undefined;
-      this.set({ status: 'ready', availableVersion: info?.version ?? this.state.availableVersion });
+      const version = info?.version ?? this.state.availableVersion;
+      // Ready-state rechecks re-verify the same staged download every cycle;
+      // only log when the STAGED version actually changes so re-stagings are
+      // visible in the field log without spamming it every 4h.
+      if (version !== this.lastReadyVersion) {
+        this.lastReadyVersion = version;
+        console.log(`[Updater] Update staged: v${version ?? '?'}`);
+      }
+      this.set({ status: 'ready', availableVersion: version });
     });
     updater.on('error', (...args: unknown[]) => {
       const err = args[0] as Error | undefined;
@@ -108,8 +199,14 @@ export class UpdaterService {
 
   check(): void {
     if (!this.autoUpdater) return;
-    // Don't restart a check while a download is in flight or staged.
-    if (this.state.status === 'downloading' || this.state.status === 'ready') return;
+    // Never interrupt an in-flight download. A STAGED update ('ready') must
+    // NOT block checking (Auto-Update Standard rule 8): under a fast release
+    // cadence the staged installer goes stale, and every restart would hop
+    // the user forward ONE version instead of straight to the latest.
+    // Re-checking lets electron-updater replace the staged download with the
+    // newest release.
+    if (this.state.status === 'downloading') return;
+    dropStaleBlockmap(this.cacheDir);
     this.autoUpdater.checkForUpdates().catch((e: Error) => {
       this.set({ status: 'error', error: e.message });
       console.error('[Updater] Check failed:', e.message);

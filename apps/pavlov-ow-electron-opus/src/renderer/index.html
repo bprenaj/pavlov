@@ -151,9 +151,14 @@
           <div id="adBanner" class="ad-banner">
             <div class="ad-unit">
               <span class="ad-tag">AD</span>
-              <span class="ad-placeholder-text">Overwolf Ad Unit</span>
-              <!-- Rendered by the Overwolf ads package under ow-electron; inert elsewhere -->
-              <owadview></owadview>
+              <!-- IAB 400x60 unit (Overwolf-supported size). owadview renders
+                   real ads under the ow-electron runtime once Overwolf has
+                   enabled this app's uid; the transparent background lets the
+                   placeholder show through when there is no fill. -->
+              <div class="ad-slot">
+                <span class="ad-placeholder-text">Overwolf Ad Unit</span>
+                <owadview></owadview>
+              </div>
             </div>
             <div class="ad-cta">
               <span class="ad-cta-text">Remove ads and unlock gaze tracking</span>
@@ -284,6 +289,14 @@
               <h3 class="s-card__title" title="Start or stop training without switching to Pavlov.&#10;Useful when you're in-game and want to pause.">Quick Toggle</h3>
               <p class="s-card__hint">Global hotkey to start/stop training from anywhere.</p>
               <input id="settingHotkey" type="text" placeholder="Click here, then press key combo" class="inp inp--sm" readonly title="Records a key combination. Press Ctrl/Shift/Alt + a key. Works even when Pavlov is in the background.">
+            </div>
+
+            <!-- Startup -->
+            <div class="s-card">
+              <h3 class="s-card__title" title="Pavlov waits in the tray so training is one click away.">Startup</h3>
+              <label class="chk" title="Launches quietly in the tray when Windows starts. No window pops up.">
+                <input type="checkbox" id="settingLaunchAtStartup" checked> Start with Windows (in the tray)
+              </label>
             </div>
 
             <!-- Privacy & Ads -->

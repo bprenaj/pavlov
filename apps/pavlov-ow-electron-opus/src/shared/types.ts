@@ -37,6 +37,7 @@ export interface PavlovSettings {
   firstRun: boolean;
   trainingMode: TrainingMode;
   analyticsOptOut: boolean;
+  launchAtStartup: boolean;
 }
 
 export interface SessionMetrics {

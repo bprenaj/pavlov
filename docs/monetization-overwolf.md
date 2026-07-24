@@ -9,9 +9,30 @@ Pavlov follows an Overwolf-first freemium model:
 
 ## Current Implementation Status
 
-- `owadview` element sits in the renderer free-tier ad panel; it renders real ads
-  under the ow-electron runtime and is inert (placeholder text shows) in plain
-  Electron dev runs.
+- `owadview` element sits in the renderer free-tier ad panel inside an exact
+  IAB 400x60 slot (`.ad-slot`); it renders real ads under the ow-electron
+  runtime and is inert (placeholder text shows) in plain Electron dev runs.
+  400x300 has the highest fill/CPM but needs a main-page layout decision
+  (owner call, pending).
+
+## Ads Activation Checklist (what is still needed for real ads)
+
+No package declaration is needed: `owadview` ships inside ow-electron itself.
+The remaining steps, in order:
+
+1. **Get the app uid.** Run the packaged app (or `npm run start:ow-electron`)
+   and read `[Main] Overwolf app uid: <uid>` from the console or
+   `%APPDATA%/Pavlov/logs/main.log`. The uid is derived from
+   package.json `productName` + `author.name`, so those fields must not
+   change afterwards.
+2. **Ask Overwolf to enable the uid** via their
+   [contact form](https://overwolf.github.io/support/contact-us). Until their
+   backend lists the uid, `owadview` shows no fill anywhere. This is the
+   long-pole step; ads revenue also requires an Overwolf developer account in
+   their monetization program.
+3. **Verify fill** in a packaged build (dev/unpackaged runs under
+   `start:ow-electron` also work). The placeholder text showing through means
+   no fill, not a bug.
 - CMP APIs are wired in main process via `require('@overwolf/ow-electron')` with
   graceful no-op outside the ow-electron runtime:
   - `isCMPRequired`

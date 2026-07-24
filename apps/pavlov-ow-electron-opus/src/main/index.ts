@@ -29,7 +29,7 @@ import { SessionEngine } from './services/sessionEngine';
 import { AlertManager } from './services/alertManager';
 import { IrlWebhook } from './services/irlWebhook';
 import { TrayManager } from './services/tray';
-import { UpdaterService } from './services/updater';
+import { UpdaterService, updaterCacheDir } from './services/updater';
 import { AnalyticsService } from './services/analytics';
 import { fileLogger } from './services/logger';
 import { createOverlayWindow } from './services/overlayFactory';
@@ -144,7 +144,9 @@ function createMainWindow(): BrowserWindow {
   });
 
   win.once('ready-to-show', () => {
-    win.show();
+    // Autostart boots stay in the tray silently; the user opted in and a
+    // balloon every boot would be noise.
+    if (!startHidden) win.show();
   });
 
   win.on('close', (e) => {
@@ -443,6 +445,7 @@ function registerIpcHandlers(): void {
 function applySettings(settings: PavlovSettings): void {
   irlWebhook.configure(settings.irlEnabled, settings.irlPort, settings.irlWebhookUrl);
   alertManager.configure(settings.alertModes, settings.volume, settings.customSoundPath);
+  applyLaunchAtStartup(settings.launchAtStartup);
 
   // Swap only our own hotkey; never unregisterAll -- the region overlay's
   // temporary Escape shortcut must survive settings changes.
@@ -468,6 +471,21 @@ function applySettings(settings: PavlovSettings): void {
     }
   }
 }
+
+/**
+ * "Start with Windows": HKCU Run value named after the AppUserModelId,
+ * written by Electron. Packaged only -- a dev run would register the bare
+ * electron.exe. --hidden makes boot launches open straight to the tray
+ * (see startHidden below). build/installer.nsh removes the Run value on
+ * uninstall; keep the two in sync.
+ */
+function applyLaunchAtStartup(enabled: boolean): void {
+  if (!app.isPackaged) return;
+  app.setLoginItemSettings({ openAtLogin: enabled, args: ['--hidden'] });
+}
+
+/** Boot launches (autostart) carry --hidden: tray only, no window pop-up. */
+const startHidden = process.argv.includes('--hidden');
 
 function wireEvents(): void {
   sessionEngine.on('state', (state) => {
@@ -556,6 +574,8 @@ function initUpdater(): void {
   trayManager.setUpdateHandler(() => updater.installNow());
   updater.init({
     isPackaged: app.isPackaged,
+    // Cache hygiene needs the packaged app-update.yml; dev runs pass null.
+    cacheDir: app.isPackaged ? updaterCacheDir(process.resourcesPath) : null,
     getAutoUpdater: () => {
       // Lazy: electron-updater reads app metadata at require time and is
       // never needed in dev runs.
@@ -590,6 +610,17 @@ async function bootstrap(): Promise<void> {
   const primaryDisplay = screen.getPrimaryDisplay();
   const { width, height } = primaryDisplay.size;
   beamBridge.start(width, height, app.getAppPath(), process.execPath);
+
+  // Ads go live only after Overwolf enables this uid on their backend
+  // (docs/monetization-overwolf.md). The uid is derived from productName +
+  // author and only exists under the ow-electron runtime; log it so the
+  // packaged app's main.log always carries the value to send to Overwolf.
+  const owUid = process.env.OVERWOLF_APP_UID;
+  if (owUid) {
+    console.log(`[Main] Overwolf app uid: ${owUid}`);
+  } else {
+    console.log('[Main] Plain Electron runtime (no OVERWOLF_APP_UID); owadview stays inert');
+  }
 }
 
 // App identity: name in menus/notifications and the Windows AppUserModelID

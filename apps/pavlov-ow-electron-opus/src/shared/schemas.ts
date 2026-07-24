@@ -32,6 +32,8 @@ export const PavlovSettingsSchema = z.object({
   firstRun: z.boolean().default(true),
   trainingMode: TrainingModeSchema.default('free'),
   analyticsOptOut: z.boolean().default(false),
+  // Tray-resident coach: present from boot by default, with a visible toggle.
+  launchAtStartup: z.boolean().default(true),
 });
 
 export const SessionRecordSchema = z.object({

@@ -31,6 +31,8 @@ describe('PavlovSettingsSchema', () => {
     expect(settings.alertModes).toEqual(['audio']);
     expect(settings.minimapRect).toBeNull();
     expect(settings.trainingMode).toBe('free');
+    // Tray-resident app: autostart defaults on.
+    expect(settings.launchAtStartup).toBe(true);
   });
 
   it('accepts full valid settings', () => {

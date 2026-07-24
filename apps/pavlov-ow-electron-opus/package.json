@@ -80,7 +80,8 @@
       "createStartMenuShortcut": true,
       "shortcutName": "Pavlov",
       "installerIcon": "build/icon.ico",
-      "uninstallerIcon": "build/icon.ico"
+      "uninstallerIcon": "build/icon.ico",
+      "include": "build/installer.nsh"
     },
     "files": [
       "dist/**/*",
