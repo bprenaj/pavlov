@@ -113,7 +113,7 @@ MapSense computes a composite **Map Awareness Score (0-100)** inspired by Mobaly
 - **History chart:** Line chart with clickable legend to toggle metrics on/off
 - **Share to Reddit:** One-click sharing of session stats + MAS to Reddit
 - **Discord button:** Link to Beam Eye Tracker Discord community
-- **Onboarding:** First-run 3-step guide for new users
+- **Onboarding:** First-run 5-step guide (hook, mark minimap, alert modes, Beam Eye Tracker pro, MAS explainer) with progress dots
 - **Detection margin visualization:** Shows the tolerance area on the overlay
 
 ### Feature Set (Post-MVP / Nice-to-Have)

@@ -159,16 +159,30 @@ describe('Renderer Layout', () => {
     });
   });
 
-  it('has onboarding modal with 3 steps', () => {
+  it('has onboarding modal with 5 steps and progress dots', () => {
     expect(document.getElementById('onboardingModal')).not.toBeNull();
-    expect(document.getElementById('onboardingStep1')).not.toBeNull();
-    expect(document.getElementById('onboardingStep2')).not.toBeNull();
-    expect(document.getElementById('onboardingStep3')).not.toBeNull();
+    for (let i = 1; i <= 5; i++) {
+      expect(document.getElementById(`onboardingStep${i}`), `step ${i}`).not.toBeNull();
+    }
+    expect(document.querySelectorAll('#obDots .ob-dot').length).toBe(5);
   });
 
   it('onboarding steps use correct class for JS toggling', () => {
     const steps = document.querySelectorAll('.onboarding-step');
-    expect(steps.length).toBe(3);
+    expect(steps.length).toBe(5);
+  });
+
+  it('onboarding explains all four alert modes', () => {
+    const modes = document.querySelectorAll('#onboardingStep3 .ob-mode');
+    expect(modes.length).toBe(4);
+    const text = document.getElementById('onboardingStep3')!.textContent!;
+    for (const mode of ['Audio', 'Visual', 'IRL', 'Silent']) {
+      expect(text).toContain(mode);
+    }
+  });
+
+  it('onboarding pro step names Beam Eye Tracker in full', () => {
+    expect(document.getElementById('onboardingStep4')!.textContent).toContain('Beam Eye Tracker');
   });
 
   it('has audio element for alerts', () => {

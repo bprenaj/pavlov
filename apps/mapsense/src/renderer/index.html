@@ -341,13 +341,32 @@
       </div>
       <div id="onboardingStep2" class="onboarding-step" style="display:none;">
         <h2>Mark Your Minimap</h2>
-        <p>Select where the minimap sits on your screen. Draw a rectangle, then press Enter to confirm.</p>
+        <p>Draw a box where your minimap sits, then press Enter. Presets for League of Legends, Dota 2, CS2 and more live in Settings.</p>
         <button class="btn btn--accent" data-onboarding-next="3">Next</button>
       </div>
       <div id="onboardingStep3" class="onboarding-step" style="display:none;">
-        <h2>Choose Your Mode</h2>
-        <p><strong>Free:</strong> Timer-based alerts remind you to check the map.<br><strong>Pro:</strong> Beam Eye Tracker provides real gaze tracking and detailed stats.</p>
+        <h2>Pick Your Bell</h2>
+        <div class="ob-modes">
+          <div class="ob-mode"><span class="ob-mode__name">Audio</span><span class="ob-mode__desc">A ding that stops the moment you check the map.</span></div>
+          <div class="ob-mode"><span class="ob-mode__name">Visual</span><span class="ob-mode__desc">Your minimap flashes until you look at it.</span></div>
+          <div class="ob-mode"><span class="ob-mode__name">IRL</span><span class="ob-mode__desc">Webhooks fire a real buzzer or LED you wire up.</span></div>
+          <div class="ob-mode"><span class="ob-mode__name">Silent</span><span class="ob-mode__desc">No alerts. MapSense just keeps score.</span></div>
+        </div>
+        <p class="ob-note">Combine any of them in Settings.</p>
+        <button class="btn btn--accent" data-onboarding-next="4">Next</button>
+      </div>
+      <div id="onboardingStep4" class="onboarding-step" style="display:none;">
+        <h2>Timers guess. Your eyes don't.</h2>
+        <p>Free mode runs on a timer plus an "I checked the map" button. Pro mode reads your real glances through Beam Eye Tracker, a webcam eye tracker, so alerts and stats follow what your eyes actually did. Pro is paid; the first 7 days are free, no card.</p>
+        <button class="btn btn--accent" data-onboarding-next="5">Next</button>
+      </div>
+      <div id="onboardingStep5" class="onboarding-step" style="display:none;">
+        <h2>Know Your Number</h2>
+        <p>Every session ends in a Map Awareness Score, 0 to 100. It blends how often you check (pros glance 6-8 times a minute), how fast you get back, glance speed, and consistency. History charts all of it over time.</p>
         <button class="btn btn--accent" id="btnFinishOnboarding">Let's Go</button>
+      </div>
+      <div class="ob-dots" id="obDots">
+        <span class="ob-dot ob-dot--on"></span><span class="ob-dot"></span><span class="ob-dot"></span><span class="ob-dot"></span><span class="ob-dot"></span>
       </div>
     </div>
   </div>

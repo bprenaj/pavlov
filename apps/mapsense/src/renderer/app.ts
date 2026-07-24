@@ -577,6 +577,9 @@ function bindEvents(): void {
       const next = (btn as HTMLElement).dataset.onboardingNext!;
       document.querySelectorAll('.onboarding-step').forEach((s) => ((s as HTMLElement).style.display = 'none'));
       $(`onboardingStep${next}`).style.display = '';
+      document.querySelectorAll('#obDots .ob-dot').forEach((d, i) => {
+        d.classList.toggle('ob-dot--on', i === Number(next) - 1);
+      });
     });
   });
   $('btnFinishOnboarding').addEventListener('click', hideOnboarding);

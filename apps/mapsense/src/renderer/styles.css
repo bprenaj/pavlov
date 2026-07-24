@@ -356,6 +356,17 @@ html, body {
 .onboarding-step h2 { font-family: 'Chakra Petch', sans-serif; color: var(--accent); margin-bottom: 10px; }
 .onboarding-step p { color: var(--text-1); margin-bottom: 18px; line-height: 1.6; }
 .ob-img { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin-bottom: 14px; border: 3px solid rgba(0,212,255,0.2); }
+.ob-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; text-align: left; }
+.ob-mode {
+  background: rgba(0,212,255,0.04); border: 1px solid var(--line); border-radius: 8px;
+  padding: 10px 12px; display: flex; flex-direction: column; gap: 3px;
+}
+.ob-mode__name { color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.ob-mode__desc { color: var(--text-1); font-size: 12px; line-height: 1.45; }
+.onboarding-step .ob-note { color: var(--text-2); font-size: 12px; margin-bottom: 14px; }
+.ob-dots { display: flex; justify-content: center; gap: 6px; margin-top: 18px; }
+.ob-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--line); transition: background 0.2s; }
+.ob-dot--on { background: var(--accent); }
 
 /* ─── Scrollbar ─── */
 ::-webkit-scrollbar { width: 5px; }
