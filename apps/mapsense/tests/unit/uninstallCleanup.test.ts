@@ -62,10 +62,11 @@ describe('uninstall cleanup (build/installer.nsh)', () => {
     }
   });
 
-  it('does not rely on deleteAppDataOnUninstall (assisted installer ignores it)', () => {
-    // oneClick: false means electron-builder skips deleteAppDataOnUninstall;
-    // userData removal must live in installer.nsh instead.
-    expect(pkg.build.nsis.oneClick).toBe(false);
-    expect(JSON.stringify(pkg.build)).not.toContain('deleteAppDataOnUninstall');
+  it('uses the one-click installer (silent background updates, no wizard)', () => {
+    // Auto-Update Standard: assisted installers replay the install wizard on
+    // every auto-update. userData removal lives in installer.nsh (guarded by
+    // isUpdated), so deleteAppDataOnUninstall stays unnecessary either way.
+    expect(pkg.build.nsis.oneClick).toBe(true);
+    expect(JSON.stringify(pkg.build)).not.toContain('allowToChangeInstallationDirectory');
   });
 });

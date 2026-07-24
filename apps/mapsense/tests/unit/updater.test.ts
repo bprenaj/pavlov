@@ -163,7 +163,8 @@ describe('UpdaterService', () => {
 
     fake.emit('update-downloaded', { version: '2.0.0' });
     service.installNow();
-    expect(fake.quitAndInstall).toHaveBeenCalledWith(false, true);
+    // Silent install (one-click NSIS): no wizard, straight relaunch.
+    expect(fake.quitAndInstall).toHaveBeenCalledWith(true, true);
   });
 
   it('pushes every state change to the listener', () => {

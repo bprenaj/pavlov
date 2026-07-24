@@ -216,7 +216,9 @@ export class UpdaterService {
   /** Install the downloaded update now and relaunch. No-op unless ready. */
   installNow(): void {
     if (!this.autoUpdater || this.state.status !== 'ready') return;
-    this.autoUpdater.quitAndInstall(false, true);
+    // isSilent=true: with the one-click NSIS installer this applies the
+    // update with no wizard, then relaunches (Cursor-style).
+    this.autoUpdater.quitAndInstall(true, true);
   }
 
   private set(patch: Partial<UpdaterState>): void {
