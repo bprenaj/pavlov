@@ -1,5 +1,9 @@
 :root {
-  --bg-0: #0a111f;
+  /* Icon background pair (build/icon-src/BRAND-NOTE.md): the app background
+     is the icon's background, so window and mark read as one object. */
+  --icon-bg-glow: #16336e;
+  --icon-bg-edge: #080e24;
+  --bg-0: #080e24;
   --bg-1: #101c31;
   --surface: #121f35;
   --surface-1: #182b47;
@@ -27,7 +31,7 @@ html, body {
   width: 100%; height: 100%; overflow: hidden;
   font-family: 'Manrope', 'Segoe UI', system-ui, sans-serif;
   color: var(--text-0);
-  background: radial-gradient(circle at 20% -25%, #22395e, var(--bg-0) 45%);
+  background: radial-gradient(circle at 20% -25%, var(--icon-bg-glow), var(--icon-bg-edge) 45%);
   user-select: none;
 }
 
@@ -139,12 +143,16 @@ html, body {
   overflow: hidden; margin-bottom: 16px; background: var(--surface);
 }
 .coach-hero__img {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  object-fit: cover; object-position: center 24%;
+  /* Natural-aspect crop, right-anchored: shows the scientist's eyes, raised
+     eyebrows, and the bell at the far right of the strip; the game-map half
+     of the artwork (to his right in the source) is pushed past the edge.
+     Offsets derived from the 761x420 source at 340px display height. */
+  position: absolute; top: -50px; right: -300px; left: auto;
+  height: 340px; width: auto;
 }
 .coach-hero__scrim {
   position: absolute; inset: 0;
-  background: linear-gradient(90deg, rgba(10,17,31,0.96) 0%, rgba(10,17,31,0.72) 42%, rgba(10,17,31,0.12) 100%);
+  background: linear-gradient(90deg, rgba(8,14,36,0.96) 0%, rgba(8,14,36,0.72) 42%, rgba(8,14,36,0.12) 100%);
 }
 .coach-hero__text { position: relative; padding: 24px 22px; }
 .coach-hero__title {
@@ -367,6 +375,20 @@ html, body {
 .ob-dots { display: flex; justify-content: center; gap: 6px; margin-top: 18px; }
 .ob-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--line); transition: background 0.2s; }
 .ob-dot--on { background: var(--accent); }
+
+/* ─── System page rows (tinomo panel language: label + desc per row) ─── */
+.sys-rows { display: flex; flex-direction: column; gap: 2px; }
+.sys-row {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 9px 10px; border-radius: 8px; background: none; border: none;
+  text-align: left; color: var(--text-0); font-family: inherit;
+}
+.sys-row--action { cursor: pointer; }
+.sys-row--action:hover { background: var(--bg-1); }
+.sys-row__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.sys-row__label { font-size: 13px; font-weight: 600; letter-spacing: 0.2px; }
+.sys-row__desc { font-size: 11.5px; color: var(--text-2); }
+.sys-row input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px; }
 
 /* ─── Scrollbar ─── */
 ::-webkit-scrollbar { width: 5px; }

@@ -58,7 +58,12 @@ MapSense does NOT do eye tracking itself. It consumes gaze data from the Beam Ey
 - **Price:** Free
 - **Steam category:** Software (not Game)
 - **Platform:** Windows x64 only
-- **Discord:** https://discord.gg/khk2dq8Bj3 (Beam Eye Tracker community)
+- **Website:** https://getmapsense.com (Cloudflare Pages)
+- **Feedback board:** https://mapsense.featurebase.app (System page "Feedback" row)
+- **Support email:** support@getmapsense.com (Cloudflare Email Routing)
+- **Discord:** https://discord.gg/khk2dq8Bj3 (Beam Eye Tracker community; per the
+  Tray App Standard every product eventually gets its OWN server, owner has to
+  create it, then swap DISCORD_URL in `src/renderer/app.ts`)
 
 ## Supported Games
 
@@ -194,8 +199,7 @@ if confidence >= 2:  # MEDIUM or HIGH
 
 ```
 mapsense/
-├── images/
-│   └── Mamapsense Favicon.svg       # App favicon (MapSense ringing bell)
+├── images/                          # Marketing art (hero, header, store)
 ├── src/
 │   ├── main.py                    # Entry point
 │   ├── app.py                     # Application class, lifecycle
@@ -341,21 +345,33 @@ The IRL webhook enables physical alert devices. When enabled, MapSense:
 
 Makers can build listeners on Raspberry Pi, Arduino, ESP32, etc. that trigger servos, LEDs, buzzers, or flags when the player forgets the minimap.
 
-## Brand Colours (Opus Redesign)
+## Brand Colours
 
-| Role                        | Hex       |
-|-----------------------------|-----------|
-| Accent (cyan)               | `#00D4FF` |
-| Background top              | `#0B1120` |
-| Background bottom           | `#101828` |
-| Card / surface              | `#1A2332` |
-| Border                      | `#243044` |
-| Gold (MAS/premium)          | `#C8A246` |
-| Text primary                | `#E8ECF2` |
-| Text secondary              | `#8899AA` |
-| Success                     | `#00E5A0` |
-| Warning                     | `#FFB74D` |
-| Error                       | `#FF5252` |
+> Source of truth: `apps/mapsense/src/renderer/styles.css` `:root` (Brand
+> Tokens Rule in the SwissTropic CLAUDE.md). This table is a regenerated
+> mirror; when they disagree, the CSS wins. Icon tokens come from
+> `apps/mapsense/build/icon-src/BRAND-NOTE.md`.
+
+| Role                        | Token             | Hex       |
+|-----------------------------|-------------------|-----------|
+| Accent (cyan)               | `--accent` / `--accent-2` | `#00D4FF` / `#33DDFF` |
+| Icon/app background glow    | `--icon-bg-glow`  | `#16336E` |
+| Icon/app background edge    | `--icon-bg-edge` = `--bg-0` | `#080E24` |
+| Background raised           | `--bg-1`          | `#101C31` |
+| Card / surface              | `--surface` / `--surface-1` | `#121F35` / `#182B47` |
+| Border                      | `--line`          | `#2D4668` |
+| Gold (MAS/premium)          | `--gold`          | `#C8A246` |
+| Bell copper ramp (icon art) | highlight / mid / shadow | `#FFE2AC` / `#D99C54` / `#220E04` |
+| Text primary / secondary / muted | `--text-0` / `--text-1` / `--text-2` | `#E6F1FF` / `#A9BFD9` / `#7F96B2` |
+| Success                     | `--success`       | `#00E5A0` |
+| Warning                     | `--warning`       | `#FFB74D` |
+| Error                       | `--danger`        | `#FF5252` |
+| Metric good / warn / bad    | `--good` / `--warn` / `--bad` | `#7ECFA0` / `#D4C46A` / `#D48A7E` |
+
+Typography: headings and numerals **Chakra Petch**, body **Manrope** (Segoe
+UI/system-ui fallback). Icon: the copper bell on the navy glow
+(`build/icon-src/`, regenerated into icon.ico + tray PNGs by
+`scripts/generate-icons.js`).
 
 ## UI/UX Guidelines
 

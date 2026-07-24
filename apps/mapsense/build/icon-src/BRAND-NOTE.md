@@ -1,0 +1,1 @@
+# MapSense icon background token\n\nIcon background (radial, 42%/55% center):\n- --icon-bg-glow: #16336E\n- --icon-bg-edge: #080E24\n\nCircuits/glow: --accent #00D4FF. Bell: copper ramp (highlight #FFE2AC, mid #D99C54, shadow #220E04).\n

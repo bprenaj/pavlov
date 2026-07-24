@@ -125,7 +125,7 @@ function createMainWindow(): BrowserWindow {
     minWidth: 800,
     minHeight: 600,
     frame: false,
-    backgroundColor: '#0B1120',
+    backgroundColor: '#080E24',
     show: false,
     icon: getWindowIconPath(),
     webPreferences: {

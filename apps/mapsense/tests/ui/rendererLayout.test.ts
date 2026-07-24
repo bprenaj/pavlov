@@ -27,13 +27,11 @@ describe('Renderer Layout', () => {
     expect(document.getElementById('beamStatusLabel')).not.toBeNull();
   });
 
-  it('has sidebar with three navigation buttons', () => {
+  it('has sidebar with four navigation buttons in Coach, Settings, History, System order', () => {
     const navs = document.querySelectorAll('.nav-item[data-page]');
-    expect(navs.length).toBe(3);
+    expect(navs.length).toBe(4);
     const pages = Array.from(navs).map((l) => (l as HTMLElement).dataset.page);
-    expect(pages).toContain('coach');
-    expect(pages).toContain('history');
-    expect(pages).toContain('settings');
+    expect(pages).toEqual(['coach', 'settings', 'history', 'system']);
   });
 
   it('has MapSense avatar in sidebar', () => {
@@ -42,10 +40,11 @@ describe('Renderer Layout', () => {
     expect(img.alt).toBe('MapSense');
   });
 
-  it('has three page sections', () => {
+  it('has four page sections', () => {
     expect(document.getElementById('pageCoach')).not.toBeNull();
     expect(document.getElementById('pageHistory')).not.toBeNull();
     expect(document.getElementById('pageSettings')).not.toBeNull();
+    expect(document.getElementById('pageSystem')).not.toBeNull();
   });
 
   it('coach page has region gate and coach content', () => {
@@ -124,8 +123,10 @@ describe('Renderer Layout', () => {
   });
 
   it('settings page has card-based layout', () => {
+    // Startup + Updates moved to the System page (2 cards there).
     const cards = document.querySelectorAll('#pageSettings .s-card');
-    expect(cards.length).toBe(9);
+    expect(cards.length).toBe(7);
+    expect(document.querySelectorAll('#pageSystem .s-card').length).toBe(2);
   });
 
   it('settings page has all controls', () => {
@@ -189,8 +190,13 @@ describe('Renderer Layout', () => {
     expect(document.getElementById('alertAudioEl')).not.toBeNull();
   });
 
-  it('has Discord link', () => {
-    expect(document.getElementById('discordLink')).not.toBeNull();
+  it('system page has the feedback rows (board, Discord, email, About)', () => {
+    for (const id of ['btnFeedbackBoard', 'btnDiscord', 'btnSupportEmail', 'btnAbout']) {
+      expect(document.querySelector(`#pageSystem #${id}`), id).not.toBeNull();
+    }
+    expect(document.getElementById('supportEmailDesc')!.textContent).toBe(
+      'support@getmapsense.com',
+    );
   });
 
   it('has ad banner with upgrade button', () => {
@@ -210,10 +216,15 @@ describe('Renderer Layout', () => {
     expect(document.getElementById('btnDismissUpdate')).not.toBeNull();
   });
 
-  it('settings page has updates card', () => {
-    expect(document.getElementById('btnCheckUpdates')).not.toBeNull();
-    expect(document.getElementById('updateStatusLabel')).not.toBeNull();
-    expect(document.getElementById('appVersionLabel')).not.toBeNull();
+  it('system page has the update row, version, and autostart toggle', () => {
+    for (const id of [
+      'btnCheckUpdates',
+      'updateStatusLabel',
+      'appVersionLabel',
+      'settingLaunchAtStartup',
+    ]) {
+      expect(document.querySelector(`#pageSystem #${id}`), id).not.toBeNull();
+    }
   });
 
   it('has pro upgrade modal', () => {

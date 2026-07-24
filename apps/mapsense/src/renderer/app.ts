@@ -71,6 +71,9 @@ let updateCheckRequested = false;
 let selectedChartMetric = 'masScore';
 
 const DISCORD_URL = 'https://discord.gg/khk2dq8Bj3';
+const FEEDBACK_URL = 'https://mapsense.featurebase.app';
+const WEBSITE_URL = 'https://getmapsense.com';
+const SUPPORT_EMAIL = 'support@getmapsense.com';
 const REDDIT_SHARE_BASE = 'https://www.reddit.com/r/leagueoflegends/submit';
 const IRL_AI_PROMPT = `I am using MapSense (https://beameyetracker.com), a desktop app that trains minimap awareness for gamers using the Beam Eye Tracker. When I forget to check my minimap, MapSense sends HTTP POST webhooks from localhost:9876 with JSON body {"event": "alert_start"} or {"event": "alert_stop"}. It also exposes GET http://localhost:9876/status for polling.
 
@@ -432,11 +435,11 @@ function renderChart(): void {
         },
       },
       scales: {
-        x: { ticks: { color: '#5C6B7A', maxTicksLimit: 12 }, grid: { color: '#1A2332' } },
+        x: { ticks: { color: '#7F96B2', maxTicksLimit: 12 }, grid: { color: 'rgba(45,70,104,0.35)' } },
         y: {
           beginAtZero: true,
           ticks: { color: '#5C6B7A' },
-          grid: { color: '#1A2332' },
+          grid: { color: 'rgba(45,70,104,0.35)' },
           title: {
             display: !!metric.unit,
             text: metric.unit,
@@ -480,7 +483,15 @@ function bindEvents(): void {
   });
   $('btnMinimize').addEventListener('click', () => api.minimizeWindow());
   $('btnClose').addEventListener('click', () => api.closeWindow());
-  $('discordLink').addEventListener('click', (e) => { e.preventDefault(); window.open(DISCORD_URL, '_blank'); });
+  $('btnFeedbackBoard').addEventListener('click', () => window.open(FEEDBACK_URL, '_blank'));
+  $('btnDiscord').addEventListener('click', () => window.open(DISCORD_URL, '_blank'));
+  $('btnAbout').addEventListener('click', () => window.open(WEBSITE_URL, '_blank'));
+  $('btnSupportEmail').addEventListener('click', async () => {
+    await navigator.clipboard.writeText(SUPPORT_EMAIL);
+    const desc = $('supportEmailDesc');
+    desc.textContent = 'Copied!';
+    setTimeout(() => { desc.textContent = SUPPORT_EMAIL; }, 1500);
+  });
   $('btnSelectRegionGate').addEventListener('click', selectRegion);
   $('btnChangeRegion').addEventListener('click', selectRegion);
   $('btnStartTraining').addEventListener('click', () => {

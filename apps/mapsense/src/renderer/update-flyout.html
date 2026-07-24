@@ -4,53 +4,72 @@
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src 'self'">
   <title>MapSense Update</title>
+  <!-- Brand-styled tray-corner flyout, visual language copied from tinomo's
+       tray panel (row + status dot + label/desc + footer buttons) and colored
+       with the live MapSense tokens from styles.css (Brand Tokens Rule). -->
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { background: transparent; overflow: hidden; }
+    :root {
+      --accent:#00d4ff; --bg-0:#080e24; --panel:#0c1730; --panel-2:#121f35; --panel-3:#182b47;
+      --accent-dim:rgba(0,212,255,0.16); --accent-glow:rgba(0,212,255,0.38);
+      --border:rgba(0,212,255,0.12); --border-strong:rgba(0,212,255,0.28);
+      --text:#e6f1ff; --text2:#7f96b2;
+      --r-sm:8px; --r-md:12px;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { height:100%; overflow:hidden; background:transparent; }
     body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      -webkit-font-smoothing: antialiased;
-      padding: 8px; /* room for the card shadow inside the transparent window */
+      font-family:'Segoe UI', system-ui, sans-serif; color:var(--text);
+      -webkit-font-smoothing:antialiased; font-size:13px; padding:8px;
     }
-    .card {
-      background: linear-gradient(180deg, #1A2332 0%, #141C2A 100%);
-      border: 1px solid #243044;
-      border-left: 3px solid #00D4FF;
-      border-radius: 10px;
-      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
-      padding: 14px 16px;
-      animation: slideIn 0.25s ease-out;
+    .panel {
+      background:var(--panel); border:1px solid var(--border-strong);
+      border-radius:var(--r-md); box-shadow:0 18px 60px rgba(0,0,0,0.6);
+      overflow:hidden; animation:slideIn 0.25s ease-out;
     }
-    @keyframes slideIn {
-      from { transform: translateY(10px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
+    @keyframes slideIn { from { transform:translateY(10px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+    .brand {
+      padding:8px 12px 0; font-size:10px; font-weight:700;
+      letter-spacing:0.08em; text-transform:uppercase; color:var(--accent);
     }
-    .head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
-    .brand { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #00D4FF; }
-    .title { font-size: 14px; font-weight: 600; color: #E8ECF2; }
-    .line { font-size: 12px; color: #8899AA; margin-bottom: 12px; }
-    .line strong { color: #E8ECF2; font-weight: 600; }
-    .actions { display: flex; gap: 8px; }
-    button {
-      font-family: inherit; font-size: 12px; font-weight: 600;
-      border-radius: 6px; padding: 7px 14px; cursor: pointer; border: none;
+    .grp { padding:6px; }
+    .row { display:flex; align-items:center; gap:12px; width:100%; padding:9px 10px; border-radius:var(--r-sm); }
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.55;} }
+    .dotwrap { width:16px; display:flex; justify-content:center; flex:none; }
+    .status-dot {
+      width:9px; height:9px; border-radius:50%; flex:none;
+      background:var(--accent); box-shadow:0 0 8px var(--accent-glow);
+      animation:pulse 2.4s infinite;
     }
-    .btn-install { background: #00D4FF; color: #0B1120; }
-    .btn-install:hover { filter: brightness(1.12); }
-    .btn-later { background: transparent; color: #8899AA; border: 1px solid #243044; }
-    .btn-later:hover { color: #E8ECF2; border-color: #8899AA; }
+    .rtext { flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; }
+    .rlabel { font-size:13px; font-weight:600; color:var(--text); letter-spacing:0.2px; }
+    .rdesc { font-size:11.5px; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .rdesc strong { color:var(--text); font-weight:600; }
+    .footer { display:flex; gap:6px; padding:8px; border-top:1px solid var(--border); }
+    .fbtn {
+      flex:1; padding:7px 8px; background:var(--panel-2); border:1px solid var(--border);
+      border-radius:var(--r-sm); color:var(--text2); font-family:inherit;
+      font-size:12px; font-weight:600; cursor:pointer;
+    }
+    .fbtn:hover { background:var(--panel-3); color:var(--text); }
+    .fbtn.primary { background:var(--accent-dim); border-color:var(--border-strong); color:var(--accent); }
+    .fbtn.primary:hover { background:var(--accent); color:var(--bg-0); }
   </style>
 </head>
 <body>
-  <div class="card">
-    <div class="head">
-      <span class="brand">MapSense</span>
-      <span class="title">Update ready</span>
+  <div class="panel">
+    <div class="brand">MapSense</div>
+    <div class="grp">
+      <div class="row">
+        <span class="dotwrap"><span class="status-dot"></span></span>
+        <span class="rtext">
+          <span class="rlabel">Software update</span>
+          <span class="rdesc"><strong id="flyoutVersion">New version</strong> downloaded. Restart applies it in seconds.</span>
+        </span>
+      </div>
     </div>
-    <p class="line"><strong id="flyoutVersion">A new version</strong> is downloaded. Restarting applies it in seconds.</p>
-    <div class="actions">
-      <button id="btnFlyoutInstall" class="btn-install">Restart to Update</button>
-      <button id="btnFlyoutLater" class="btn-later" title="Installs on its own the next time you quit">Later</button>
+    <div class="footer">
+      <button id="btnFlyoutInstall" class="fbtn primary">Restart to Update</button>
+      <button id="btnFlyoutLater" class="fbtn" title="Installs on its own the next time you quit">Later</button>
     </div>
   </div>
   <script src="updateFlyout.js"></script>
