@@ -31,4 +31,9 @@ export const IPC = {
   REGION_CANCEL: 'overlay:regionCancel',
   REGION_INIT: 'overlay:regionInit',
   ALERT_STATE: 'overlay:alertState',
+
+  // Update flyout (branded tray-corner card, shown while the window is hidden)
+  FLYOUT_INIT: 'flyout:init',
+  FLYOUT_INSTALL: 'flyout:install',
+  FLYOUT_LATER: 'flyout:later',
 } as const;

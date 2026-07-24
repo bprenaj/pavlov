@@ -15,6 +15,7 @@ const staticFiles = [
   'styles.css',
   'alert-overlay.html',
   'region-overlay.html',
+  'update-flyout.html',
 ];
 
 for (const f of staticFiles) {

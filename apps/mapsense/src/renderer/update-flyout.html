@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src 'self'">
+  <title>MapSense Update</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { background: transparent; overflow: hidden; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      padding: 8px; /* room for the card shadow inside the transparent window */
+    }
+    .card {
+      background: linear-gradient(180deg, #1A2332 0%, #141C2A 100%);
+      border: 1px solid #243044;
+      border-left: 3px solid #00D4FF;
+      border-radius: 10px;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+      padding: 14px 16px;
+      animation: slideIn 0.25s ease-out;
+    }
+    @keyframes slideIn {
+      from { transform: translateY(10px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+    .brand { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #00D4FF; }
+    .title { font-size: 14px; font-weight: 600; color: #E8ECF2; }
+    .line { font-size: 12px; color: #8899AA; margin-bottom: 12px; }
+    .line strong { color: #E8ECF2; font-weight: 600; }
+    .actions { display: flex; gap: 8px; }
+    button {
+      font-family: inherit; font-size: 12px; font-weight: 600;
+      border-radius: 6px; padding: 7px 14px; cursor: pointer; border: none;
+    }
+    .btn-install { background: #00D4FF; color: #0B1120; }
+    .btn-install:hover { filter: brightness(1.12); }
+    .btn-later { background: transparent; color: #8899AA; border: 1px solid #243044; }
+    .btn-later:hover { color: #E8ECF2; border-color: #8899AA; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="head">
+      <span class="brand">MapSense</span>
+      <span class="title">Update ready</span>
+    </div>
+    <p class="line"><strong id="flyoutVersion">A new version</strong> is downloaded. Restarting applies it in seconds.</p>
+    <div class="actions">
+      <button id="btnFlyoutInstall" class="btn-install">Restart to Update</button>
+      <button id="btnFlyoutLater" class="btn-later" title="Installs on its own the next time you quit">Later</button>
+    </div>
+  </div>
+  <script src="updateFlyout.js"></script>
+</body>
+</html>

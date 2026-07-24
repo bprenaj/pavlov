@@ -16,6 +16,8 @@
 ### UX and Terminology Guardrails
 
 - App name in user-facing UI is **MapSense**, everywhere. The former name (the scientist's) was retired 2026-07-24 and must not reappear in any surface, code identifier, or doc.
+- Brand lockup, used verbatim on every surface that pairs name + tagline (title bar, tray tooltip, hero, store copy, description): **MapSense - Minimap awareness coach**.
+- Audience is 14-25 competitive gamers. No corporate openers ("Welcome to...", "Meet..."); Sam's whisper rule applies (see sam-copywriting skill).
 - Say **Beam Eye Tracker** in UI text for clarity.
 - Keep wording close to legacy intent; avoid novelty renaming of familiar controls.
 - Keep first-run onboarding and region-first guidance flow.

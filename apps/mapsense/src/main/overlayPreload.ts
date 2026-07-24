@@ -22,3 +22,19 @@ contextBridge.exposeInMainWorld('alertOverlayApi', {
     ipcRenderer.on(CH_ALERT_STATE, (_e, active) => cb(active));
   },
 });
+
+const CH_FLYOUT_INIT = 'flyout:init';
+const CH_FLYOUT_INSTALL = 'flyout:install';
+const CH_FLYOUT_LATER = 'flyout:later';
+
+contextBridge.exposeInMainWorld('updateFlyoutApi', {
+  onInit: (cb: (version: string) => void) => {
+    ipcRenderer.on(CH_FLYOUT_INIT, (_e, version) => cb(version));
+  },
+  install: () => {
+    ipcRenderer.send(CH_FLYOUT_INSTALL);
+  },
+  later: () => {
+    ipcRenderer.send(CH_FLYOUT_LATER);
+  },
+});

@@ -32,6 +32,8 @@ describe('Smoke Tests', () => {
       'src/renderer/alertOverlay.ts',
       'src/renderer/region-overlay.html',
       'src/renderer/regionOverlay.ts',
+      'src/renderer/update-flyout.html',
+      'src/renderer/updateFlyout.ts',
     ];
     for (const f of required) {
       expect(fs.existsSync(path.join(ROOT, f)), `Missing: ${f}`).toBe(true);
@@ -212,5 +214,11 @@ describe('Smoke Tests', () => {
 
     const alertHtml = fs.readFileSync(path.join(ROOT, 'src', 'renderer', 'alert-overlay.html'), 'utf-8');
     expect(alertHtml).toContain('alertOverlay.js');
+
+    const flyoutHtml = fs.readFileSync(path.join(ROOT, 'src', 'renderer', 'update-flyout.html'), 'utf-8');
+    expect(flyoutHtml).toContain('updateFlyout.js');
+    // copy-static must bundle the flyout page or the packaged app 404s it.
+    const copyStatic = fs.readFileSync(path.join(ROOT, 'scripts', 'copy-static.mjs'), 'utf-8');
+    expect(copyStatic).toContain('update-flyout.html');
   });
 });

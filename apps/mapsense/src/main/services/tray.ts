@@ -46,7 +46,7 @@ export class TrayManager {
   create(mainWindow: BrowserWindow): void {
     this.mainWindow = mainWindow;
     this.tray = new Tray(trayIconFor(this.status));
-    this.tray.setToolTip(`MapSense - Map Awareness Coach\n${statusLabelFor(this.status)}`);
+    this.tray.setToolTip(`MapSense - Minimap awareness coach\n${statusLabelFor(this.status)}`);
     this.updateMenu();
 
     // Windows convention: a single left-click opens the app.
@@ -78,7 +78,7 @@ export class TrayManager {
     this.status = status;
     if (this.tray) {
       this.tray.setImage(trayIconFor(status));
-      this.tray.setToolTip(`MapSense - Map Awareness Coach\n${statusLabelFor(status)}`);
+      this.tray.setToolTip(`MapSense - Minimap awareness coach\n${statusLabelFor(status)}`);
       this.updateMenu();
     }
   }

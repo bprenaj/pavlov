@@ -598,7 +598,7 @@ function shareReddit(): void {
   if (historyRecords.length === 0) return;
   const last = historyRecords[historyRecords.length - 1];
   const title = `[MapSense] My Map Awareness Score: ${last.masScore} | ${Math.round(last.durationS / 60)}min session`;
-  const text = `MAS: ${last.masScore}\nGlances/min: ${last.glancesPerMin}\nAvg response: ${last.avgGapS}s\nLongest blind: ${last.longestGapS}s\n\nTrained with MapSense - the map awareness coach.`;
+  const text = `MAS: ${last.masScore}\nGlances/min: ${last.glancesPerMin}\nAvg response: ${last.avgGapS}s\nLongest blind: ${last.longestGapS}s\n\nTrained with MapSense - the minimap awareness coach.`;
   window.open(`${REDDIT_SHARE_BASE}?type=TEXT&title=${encodeURIComponent(title)}&text=${encodeURIComponent(text)}`, '_blank');
 }
 

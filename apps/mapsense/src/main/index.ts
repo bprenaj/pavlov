@@ -40,6 +40,8 @@ import type { MinimapRect, MapSenseSettings } from '../shared/types';
 
 let mainWindow: BrowserWindow | null = null;
 let alertOverlayWindow: BrowserWindow | null = null;
+let updateFlyoutWindow: BrowserWindow | null = null;
+let lastFlyoutVersion: string | null = null;
 let regionOverlayWindow: BrowserWindow | null = null;
 let regionResolve: ((rect: MinimapRect | null) => void) | null = null;
 let regionPromise: Promise<MinimapRect | null> | null = null;
@@ -285,6 +287,61 @@ function createRegionOverlay(): Promise<MinimapRect | null> {
       }
     });
   });
+}
+
+/**
+ * Branded update flyout: a frameless card in the tray corner, shown when an
+ * update is staged while the main window is hidden (the in-window banner
+ * covers the visible case). Guarded on the staged VERSION so 4h re-checks
+ * of the same download never re-pop it (Tray App Standard timer hygiene).
+ */
+const FLYOUT_W = 356;
+const FLYOUT_H = 128;
+
+function showUpdateFlyout(version: string): void {
+  const wa = screen.getPrimaryDisplay().workArea;
+  const x = wa.x + wa.width - FLYOUT_W - 16;
+  const y = wa.y + wa.height - FLYOUT_H - 16;
+
+  if (updateFlyoutWindow && !updateFlyoutWindow.isDestroyed()) {
+    updateFlyoutWindow.webContents.send(IPC.FLYOUT_INIT, version);
+    updateFlyoutWindow.showInactive();
+    return;
+  }
+
+  updateFlyoutWindow = new BrowserWindow({
+    width: FLYOUT_W,
+    height: FLYOUT_H,
+    x,
+    y,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    movable: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    show: false,
+    webPreferences: {
+      preload: getOverlayPreloadPath(),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  updateFlyoutWindow.loadFile(getRendererPath('update-flyout.html'));
+  updateFlyoutWindow.webContents.on('did-finish-load', () => {
+    updateFlyoutWindow?.webContents.send(IPC.FLYOUT_INIT, version);
+    // showInactive: the card must never steal focus from a game.
+    updateFlyoutWindow?.showInactive();
+  });
+  updateFlyoutWindow.on('closed', () => {
+    updateFlyoutWindow = null;
+  });
+}
+
+function hideUpdateFlyout(): void {
+  if (updateFlyoutWindow && !updateFlyoutWindow.isDestroyed()) {
+    updateFlyoutWindow.hide();
+  }
 }
 
 function cmpRequired(): boolean {
@@ -585,7 +642,28 @@ function initUpdater(): void {
     onStateChange: (state) => {
       mainWindow?.webContents.send(IPC.ON_UPDATER_STATE, state);
       trayManager.updateUpdaterState(state);
+      // Tray-corner flyout for tray-resident sessions; the in-window banner
+      // already covers a visible window. Once per staged version.
+      if (
+        state.status === 'ready' &&
+        state.availableVersion &&
+        state.availableVersion !== lastFlyoutVersion &&
+        !mainWindow?.isVisible()
+      ) {
+        lastFlyoutVersion = state.availableVersion;
+        showUpdateFlyout(state.availableVersion);
+      }
     },
+  });
+
+  ipcMain.on(IPC.FLYOUT_INSTALL, () => {
+    hideUpdateFlyout();
+    updater.installNow();
+  });
+
+  ipcMain.on(IPC.FLYOUT_LATER, () => {
+    // Ignoring the flyout still installs on next quit (autoInstallOnAppQuit).
+    hideUpdateFlyout();
   });
 }
 
@@ -689,6 +767,7 @@ app.on('before-quit', (e) => {
   globalShortcut.unregisterAll();
   mainWindow?.removeAllListeners('close');
   mainWindow?.destroy();
+  updateFlyoutWindow?.destroy();
 
   const timeout = new Promise((resolve) => setTimeout(resolve, 1500));
   void Promise.race([analytics.shutdown(), timeout]).finally(() => {
