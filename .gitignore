@@ -52,3 +52,6 @@ src/assets/alert.wav
 !apps/mapsense/build/
 # electron-builder output
 apps/mapsense/release/
+
+# Cloudflare wrangler local cache (account id, state)
+.wrangler/
